@@ -1,0 +1,16 @@
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import '@fontsource-variable/inter'
+import '@fontsource-variable/geist'
+import '@fontsource/ibm-plex-sans-arabic/400.css'
+import '@fontsource/ibm-plex-sans-arabic/500.css'
+import '@fontsource/ibm-plex-sans-arabic/600.css'
+import '@/lib/i18n'
+import '@/styles/globals.css'
+import { App } from '@/app/App'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
