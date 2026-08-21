@@ -3,6 +3,7 @@ import type { Post } from '@/types'
 let n = 0
 const post = (p: Pick<Post, 'title' | 'date' | 'time' | 'platforms'> & Partial<Post>): Post => ({
   id: `post_${String(++n).padStart(2, '0')}`,
+  workspace: 'wonderlearn',
   description: '',
   topic: '',
   caption: '',

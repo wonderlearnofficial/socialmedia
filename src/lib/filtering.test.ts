@@ -3,6 +3,7 @@ import type { Post } from '@/types'
 import { countByStatus, filterPosts, postsForDay, postsForMonth, sortPosts } from './filtering'
 
 const base: Omit<Post, 'id' | 'title' | 'date' | 'time' | 'platforms' | 'status'> = {
+  workspace: 'wonderlearn',
   description: '',
   topic: '',
   caption: '',

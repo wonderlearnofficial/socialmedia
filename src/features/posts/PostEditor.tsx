@@ -24,9 +24,10 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { TEAM } from '@/data/team'
 import { useCreatePost, useUpdatePost } from '@/hooks/usePosts'
-import { CONTENT_TYPE_META, STATUS_META } from '@/lib/constants'
+import { CONTENT_TYPE_META, STATUS_META, WORKSPACE_META } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import { CONTENT_TYPES, POST_STATUSES, type Post } from '@/types'
+import { useAppSelector } from '@/store/hooks'
+import { CONTENT_TYPES, POST_STATUSES, type Post, type SocialPlatform } from '@/types'
 import { PlatformSelector } from './PlatformSelector'
 import { postSchema, type PostFormValues } from './postSchema'
 
@@ -38,14 +39,18 @@ interface PostEditorProps {
   onClose: () => void
 }
 
-const emptyValues = (date: string, time: string): PostFormValues => ({
+const emptyValues = (
+  date: string,
+  time: string,
+  defaultPlatforms: SocialPlatform[] = [],
+): PostFormValues => ({
   title: '',
   description: '',
   topic: '',
   caption: '',
   date,
   time,
-  platforms: [],
+  platforms: defaultPlatforms,
   contentType: 'image',
   status: 'draft',
   assignee: '',
@@ -59,6 +64,8 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
   const create = useCreatePost()
   const update = useUpdatePost()
   const isEdit = Boolean(post)
+  const activeWorkspace = useAppSelector((s) => s.settings.activeWorkspace)
+  const defaultPlatforms = WORKSPACE_META[activeWorkspace].defaultPlatforms
 
   const {
     register,
@@ -68,7 +75,7 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
     formState: { errors, isSubmitting },
   } = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
-    defaultValues: emptyValues(presetDate ?? '', presetTime ?? '10:00'),
+    defaultValues: emptyValues(presetDate ?? '', presetTime ?? '10:00', defaultPlatforms),
   })
 
   // Repopulate whenever the target post (or preset day) changes.
@@ -91,14 +98,21 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
         mediaPreview: post.mediaPreview ?? '',
       })
     } else {
-      reset(emptyValues(presetDate ?? new Date().toISOString().slice(0, 10), presetTime ?? '10:00'))
+      reset(
+        emptyValues(
+          presetDate ?? new Date().toISOString().slice(0, 10),
+          presetTime ?? '10:00',
+          defaultPlatforms,
+        ),
+      )
     }
-  }, [open, post, presetDate, presetTime, reset])
+  }, [open, post, presetDate, presetTime, reset, defaultPlatforms])
 
   const onSubmit = handleSubmit(async (raw) => {
     const values = postSchema.parse(raw)
     const payload = {
       ...values,
+      workspace: activeWorkspace,
       assignee: values.assignee || undefined,
       contentUrl: values.contentUrl || undefined,
       contentFileName: values.contentFileName || undefined,
@@ -260,7 +274,9 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">—</SelectItem>
-                        {TEAM.filter((m) => m.focus.length > 0).map((member) => (
+                        {TEAM.filter(
+                          (m) => m.workspace === activeWorkspace && m.focus.length > 0,
+                        ).map((member) => (
                           <SelectItem key={member.id} value={member.name}>
                             {member.name}
                           </SelectItem>

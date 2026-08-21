@@ -11,22 +11,24 @@ import { CalendarShell } from '@/features/calendar/CalendarShell'
 import { CalendarSummary } from '@/features/calendar/CalendarSummary'
 import { DayDetailsModal } from '@/features/calendar/DayDetailsModal'
 import { PostDetailsDrawer } from '@/features/posts/PostDetailsDrawer'
-import { usePostById, usePostsQuery } from '@/hooks/usePosts'
-import { OWNER_NAME } from '@/lib/constants'
+import { OWNER_NAME, WORKSPACE_META } from '@/lib/constants'
 import { formatMonthTitle } from '@/lib/dates'
 import { postsForMonth } from '@/lib/filtering'
 import { api } from '@/services/api'
-import { useAppSelector } from '@/store/hooks'
 import type { CalendarViewMode } from '@/store/slices/viewSlice'
 
 /**
  * Review mode. Reached only through a share link: no sidebar, no authoring,
  * no internal assignee data — just the plan and the two decisions the owner owns.
+ *
+ * The visiting browser has no workspace of its own (no switcher, no session),
+ * so posts are fetched scoped to whatever workspace the share record itself
+ * carries — never the viewer's local settings, which default to Wonderlearn
+ * regardless of which client's link they actually opened.
  */
 export function SharedCalendarPage() {
   const { t, i18n } = useTranslation()
   const { shareId = '' } = useParams()
-  const workspaceName = useAppSelector((s) => s.settings.workspaceName)
 
   const [view, setView] = useState<CalendarViewMode>('month')
   const [date, setDate] = useState(() => new Date())
@@ -39,8 +41,18 @@ export function SharedCalendarPage() {
     enabled: Boolean(shareId),
   })
 
-  const { data: posts = [], isLoading, isError, refetch } = usePostsQuery()
-  const activePost = usePostById(activeId)
+  const workspace = share.data?.workspace
+  const {
+    data: posts = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['posts', workspace],
+    queryFn: () => api.listPosts(workspace!),
+    enabled: Boolean(workspace),
+  })
+  const activePost = posts.find((p) => p.id === activeId) ?? null
 
   // A shared post link (?post=<id>) opens straight into that post.
   const [searchParams, setSearchParams] = useSearchParams()
@@ -75,6 +87,7 @@ export function SharedCalendarPage() {
   }
 
   const monthPosts = postsForMonth(posts, share.data.month)
+  const workspaceLabel = WORKSPACE_META[share.data.workspace].label
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background">
@@ -96,7 +109,7 @@ export function SharedCalendarPage() {
           </h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {formatMonthTitle(date, i18n.language)} ·{' '}
-            {t('share.sharedBy', { workspace: workspaceName })}
+            {t('share.sharedBy', { workspace: workspaceLabel })}
           </p>
         </div>
 

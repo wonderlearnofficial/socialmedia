@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Sidebar, SidebarNav } from './Sidebar'
 import { ThemeToggle } from './ThemeToggle'
+import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 
 export function AppShell() {
   const { t } = useTranslation()
@@ -47,6 +48,9 @@ export function AppShell() {
             <SheetTitle asChild>
               <BrandLockup subtitle={t('app.tagline')} size="sm" />
             </SheetTitle>
+          </div>
+          <div className="border-b p-3">
+            <WorkspaceSwitcher />
           </div>
           <SidebarNav onNavigate={() => setMenuOpen(false)} />
         </SheetContent>

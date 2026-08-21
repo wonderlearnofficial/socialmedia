@@ -15,7 +15,9 @@ export function TeamPage() {
   const { t } = useTranslation()
   const { data: posts = [] } = usePostsQuery()
   const dateISO = useAppSelector((s) => s.view.dateISO)
+  const activeWorkspace = useAppSelector((s) => s.settings.activeWorkspace)
   const monthPosts = postsForMonth(posts, toMonthKey(new Date(dateISO)))
+  const workspaceTeam = TEAM.filter((m) => m.workspace === activeWorkspace)
 
   return (
     <div className="h-full overflow-y-auto p-4 sm:p-5 lg:p-6">
@@ -23,7 +25,7 @@ export function TeamPage() {
         <PageHeader title={t('team.title')} subtitle={t('team.subtitle')} />
 
         <div className="grid gap-3 sm:grid-cols-2">
-          {TEAM.map((member) => {
+          {workspaceTeam.map((member) => {
             const assigned = monthPosts.filter((p) => p.assignee === member.name).length
             const isClient = member.focus.length === 0
             return (

@@ -8,6 +8,9 @@ export const SOCIAL_PLATFORMS = [
 ] as const
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number]
 
+export const WORKSPACES = ['wonderlearn', 'dr_wael'] as const
+export type WorkspaceId = (typeof WORKSPACES)[number]
+
 export const POST_STATUSES = [
   'draft',
   'in_review',
@@ -35,6 +38,7 @@ export interface Feedback {
 
 export interface Post {
   id: string
+  workspace: WorkspaceId
   title: string
   description: string
   topic: string
@@ -59,6 +63,7 @@ export type PostInput = Omit<Post, 'id' | 'feedback' | 'createdAt' | 'updatedAt'
 
 export interface ShareLink {
   id: string
+  workspace: WorkspaceId
   /** yyyy-MM anchor of the shared month */
   month: string
   createdAt: string
@@ -66,6 +71,7 @@ export interface ShareLink {
 
 export interface TeamMember {
   id: string
+  workspace: WorkspaceId
   name: string
   role: string
   email: string

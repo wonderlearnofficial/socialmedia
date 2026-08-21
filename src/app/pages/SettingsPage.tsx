@@ -5,18 +5,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { postsKey } from '@/hooks/usePosts'
 import { cn } from '@/lib/utils'
 import { resetDemoData } from '@/services/mockServer'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import {
-  setLanguage,
-  setTheme,
-  setWorkspaceName,
-  type ThemeSetting,
-} from '@/store/slices/settingsSlice'
+import { setLanguage, setTheme, type ThemeSetting } from '@/store/slices/settingsSlice'
 
 const THEMES: { value: ThemeSetting; icon: typeof Sun; key: string }[] = [
   { value: 'dark', icon: Moon, key: 'settings.themeDark' },
@@ -28,7 +20,7 @@ export function SettingsPage() {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const qc = useQueryClient()
-  const { theme, language, workspaceName } = useAppSelector((s) => s.settings)
+  const { theme, language } = useAppSelector((s) => s.settings)
 
   return (
     <div className="h-full overflow-y-auto p-4 sm:p-5 lg:p-6">
@@ -88,22 +80,6 @@ export function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('settings.workspace')}</CardTitle>
-            <CardDescription>{t('settings.workspaceBody')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1.5">
-            <Label htmlFor="workspace-name">{t('settings.workspaceName')}</Label>
-            <Input
-              id="workspace-name"
-              value={workspaceName}
-              onChange={(e) => dispatch(setWorkspaceName(e.target.value))}
-              className="max-w-sm"
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>{t('settings.data')}</CardTitle>
             <CardDescription>{t('settings.dataBody')}</CardDescription>
           </CardHeader>
@@ -113,7 +89,7 @@ export function SettingsPage() {
               size="sm"
               onClick={async () => {
                 resetDemoData()
-                await qc.invalidateQueries({ queryKey: postsKey })
+                await qc.invalidateQueries({ queryKey: ['posts'] })
                 toast.success(t('settings.resetDone'))
               }}
             >

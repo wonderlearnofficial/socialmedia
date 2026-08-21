@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import type { FeedbackInput } from '@/services/mockServer'
-import type { Post, PostInput } from '@/types'
-
-export const postsKey = ['posts'] as const
+import { useAppSelector } from '@/store/hooks'
+import type { PostInput } from '@/types'
 
 export function usePostsQuery() {
-  return useQuery({ queryKey: postsKey, queryFn: api.listPosts })
+  const workspace = useAppSelector((s) => s.settings.activeWorkspace)
+  return useQuery({
+    queryKey: ['posts', workspace],
+    queryFn: () => api.listPosts(workspace),
+  })
 }
 
 export function usePostById(id: string | null) {
@@ -14,58 +17,49 @@ export function usePostById(id: string | null) {
   return id ? (data?.find((p) => p.id === id) ?? null) : null
 }
 
-function useCacheReplace() {
+/** Every mutation refetches whichever workspace's posts query is mounted. */
+function useInvalidatePosts() {
   const qc = useQueryClient()
-  return (post: Post) => {
-    qc.setQueryData<Post[]>(postsKey, (old) =>
-      old ? old.map((p) => (p.id === post.id ? post : p)) : [post],
-    )
-  }
+  return () => qc.invalidateQueries({ queryKey: ['posts'] })
 }
 
 export function useCreatePost() {
-  const qc = useQueryClient()
+  const invalidate = useInvalidatePosts()
   return useMutation({
     mutationFn: (input: PostInput) => api.createPost(input),
-    onSuccess: (post) => {
-      qc.setQueryData<Post[]>(postsKey, (old) => (old ? [...old, post] : [post]))
-    },
+    onSuccess: invalidate,
   })
 }
 
 export function useUpdatePost() {
-  const replace = useCacheReplace()
+  const invalidate = useInvalidatePosts()
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Partial<PostInput> }) =>
       api.updatePost(id, patch),
-    onSuccess: replace,
+    onSuccess: invalidate,
   })
 }
 
 export function useDeletePost() {
-  const qc = useQueryClient()
+  const invalidate = useInvalidatePosts()
   return useMutation({
     mutationFn: (id: string) => api.deletePost(id),
-    onSuccess: ({ id }) => {
-      qc.setQueryData<Post[]>(postsKey, (old) => old?.filter((p) => p.id !== id) ?? [])
-    },
+    onSuccess: invalidate,
   })
 }
 
 export function useDuplicatePost() {
-  const qc = useQueryClient()
+  const invalidate = useInvalidatePosts()
   return useMutation({
     mutationFn: (id: string) => api.duplicatePost(id),
-    onSuccess: (post) => {
-      qc.setQueryData<Post[]>(postsKey, (old) => (old ? [...old, post] : [post]))
-    },
+    onSuccess: invalidate,
   })
 }
 
 export function useAddFeedback() {
-  const replace = useCacheReplace()
+  const invalidate = useInvalidatePosts()
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: FeedbackInput }) => api.addFeedback(id, input),
-    onSuccess: replace,
+    onSuccess: invalidate,
   })
 }

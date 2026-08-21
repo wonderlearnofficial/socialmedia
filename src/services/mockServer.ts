@@ -2,7 +2,14 @@ import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from 'ax
 import { MOCK_POSTS } from '@/data/mockPosts'
 import { sortPosts } from '@/lib/filtering'
 import { uid } from '@/lib/utils'
-import type { Feedback, Post, PostStatus, ShareLink } from '@/types'
+import {
+  WORKSPACES,
+  type Feedback,
+  type Post,
+  type PostStatus,
+  type ShareLink,
+  type WorkspaceId,
+} from '@/types'
 
 /**
  * A tiny in-browser "server" wired in as a custom axios adapter and persisted
@@ -11,7 +18,8 @@ import type { Feedback, Post, PostStatus, ShareLink } from '@/types'
  */
 
 const DB_KEY = 'cadence-db-v1'
-const SEED_VERSION = 1
+// v2: posts/team/shares gained a required `workspace` field.
+const SEED_VERSION = 2
 
 interface Db {
   seedVersion: number
@@ -65,13 +73,17 @@ const MONTH_SLUGS = [
   'december',
 ]
 
-/** "august-2026-k2ej20" -> "2026-08" */
-export function monthFromShareId(id: string): string | null {
-  const match = /^([a-z]+)-(\d{4})(?:-|$)/.exec(id)
+/** "wonderlearn-august-2026-k2ej20" -> { workspace: 'wonderlearn', month: '2026-08' } */
+export function parseShareId(id: string): { workspace: WorkspaceId; month: string } | null {
+  const match = new RegExp(`^(${WORKSPACES.join('|')})-([a-z]+)-(\\d{4})(?:-|$)`).exec(id)
   if (!match) return null
-  const index = MONTH_SLUGS.indexOf(match[1])
+  const [, workspace, monthWord, year] = match
+  const index = MONTH_SLUGS.indexOf(monthWord)
   if (index === -1) return null
-  return `${match[2]}-${String(index + 1).padStart(2, '0')}`
+  return {
+    workspace: workspace as WorkspaceId,
+    month: `${year}-${String(index + 1).padStart(2, '0')}`,
+  }
 }
 
 const latency = () => new Promise((r) => setTimeout(r, 150 + Math.random() * 250))
@@ -98,7 +110,9 @@ export const mockAdapter: AxiosAdapter = async (config) => {
   const now = new Date().toISOString()
 
   if (method === 'get' && url === '/posts') {
-    return ok(config, sortPosts(structuredClone(store.posts)))
+    const workspace = config.params?.workspace as WorkspaceId | undefined
+    const scoped = workspace ? store.posts.filter((p) => p.workspace === workspace) : store.posts
+    return ok(config, sortPosts(structuredClone(scoped)))
   }
 
   if (method === 'post' && url === '/posts') {
@@ -170,9 +184,14 @@ export const mockAdapter: AxiosAdapter = async (config) => {
   }
 
   if (method === 'post' && url === '/shares') {
-    const { month, slug } = body as { month: string; slug: string }
+    const { month, slug, workspace } = body as {
+      month: string
+      slug: string
+      workspace: WorkspaceId
+    }
     const share: ShareLink = {
-      id: `${slug}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `${workspace}-${slug}-${Math.random().toString(36).slice(2, 8)}`,
+      workspace,
       month,
       createdAt: now,
     }
@@ -187,10 +206,11 @@ export const mockAdapter: AxiosAdapter = async (config) => {
     const stored = store.shares.find((s) => s.id === id)
     if (stored) return ok(config, structuredClone(stored))
     // The recipient of a link is a different browser, so it holds no record of
-    // the share. Share ids carry their month ("august-2026-xxxxxx"), so the link
-    // still resolves against that browser's copy of the calendar.
-    const derived = monthFromShareId(id)
-    return ok(config, derived ? ({ id, month: derived, createdAt: now } satisfies ShareLink) : null)
+    // the share. Share ids carry their workspace and month
+    // ("dr_wael-august-2026-xxxxxx"), so the link still resolves against that
+    // browser's copy of the calendar.
+    const parsed = parseShareId(id)
+    return ok(config, parsed ? ({ id, ...parsed, createdAt: now } satisfies ShareLink) : null)
   }
 
   throw new Error(`Unhandled mock request: ${method.toUpperCase()} ${url}`)

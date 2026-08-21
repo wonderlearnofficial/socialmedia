@@ -1,9 +1,10 @@
-import type { Post, PostInput, ShareLink } from '@/types'
+import type { Post, PostInput, ShareLink, WorkspaceId } from '@/types'
 import type { FeedbackInput } from './mockServer'
 import { http } from './http'
 
 export const api = {
-  listPosts: () => http.get<Post[]>('/posts').then((r) => r.data),
+  listPosts: (workspace: WorkspaceId) =>
+    http.get<Post[]>('/posts', { params: { workspace } }).then((r) => r.data),
 
   createPost: (input: PostInput) => http.post<Post>('/posts', input).then((r) => r.data),
 
@@ -17,8 +18,8 @@ export const api = {
   addFeedback: (id: string, input: FeedbackInput) =>
     http.post<Post>(`/posts/${id}/feedback`, input).then((r) => r.data),
 
-  createShare: (month: string, slug: string) =>
-    http.post<ShareLink>('/shares', { month, slug }).then((r) => r.data),
+  createShare: (month: string, slug: string, workspace: WorkspaceId) =>
+    http.post<ShareLink>('/shares', { month, slug, workspace }).then((r) => r.data),
 
   getShare: (id: string) => http.get<ShareLink | null>(`/shares/${id}`).then((r) => r.data),
 }

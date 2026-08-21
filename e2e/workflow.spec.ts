@@ -153,3 +153,47 @@ test('a post can be rescheduled by dragging it to another day', async ({ page })
     'Enrolment Closes Friday',
   )
 })
+
+test('switching to the Dr. Wael tab shows an empty, separate calendar', async ({ page }) => {
+  await expect.poll(() => page.locator('.fc-event').count()).toBeGreaterThan(20)
+
+  await page.getByRole('tab', { name: 'Dr. Wael' }).click()
+
+  await expect(page.locator('.fc-event')).toHaveCount(0)
+  await expect(page.getByText('Back to School Campaign')).toHaveCount(0)
+
+  // Switching back returns to the full Wonderlearn calendar, untouched.
+  await page.getByRole('tab', { name: 'Wonderlearn' }).click()
+  await expect.poll(() => page.locator('.fc-event').count()).toBeGreaterThan(20)
+})
+
+test('a new post under Dr. Wael defaults to LinkedIn but other platforms stay pickable', async ({
+  page,
+}) => {
+  await page.getByRole('tab', { name: 'Dr. Wael' }).click()
+  await page.getByRole('button', { name: 'Add post' }).first().click()
+
+  const editor = page.getByRole('dialog')
+  await expect(editor.getByRole('checkbox', { name: 'LinkedIn' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  )
+  await expect(editor.getByRole('checkbox', { name: 'Instagram' })).toHaveAttribute(
+    'aria-checked',
+    'false',
+  )
+
+  await editor.getByLabel('Title').fill('Dr. Wael Launch Post')
+  await editor.getByLabel('Date').fill('2026-08-09')
+  await editor.getByLabel('Time').fill('09:00')
+  await editor.getByRole('button', { name: 'Create post' }).click()
+
+  await expect(page.getByText('Post created')).toBeVisible()
+  await expect(page.locator('.fc-daygrid-day[data-date="2026-08-09"]')).toContainText(
+    'Dr. Wael Launch Post',
+  )
+
+  // And it never leaks back into Wonderlearn's calendar.
+  await page.getByRole('tab', { name: 'Wonderlearn' }).click()
+  await expect(page.getByText('Dr. Wael Launch Post')).toHaveCount(0)
+})

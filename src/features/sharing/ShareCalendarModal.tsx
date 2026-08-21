@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { api } from '@/services/api'
 import { formatMonthTitle, toMonthKey } from '@/lib/dates'
 import { appUrl } from '@/lib/utils'
+import { useAppSelector } from '@/store/hooks'
 import { format } from 'date-fns'
 
 interface ShareCalendarModalProps {
@@ -30,6 +31,7 @@ export function ShareCalendarModal({ open, onClose, month }: ShareCalendarModalP
   const { t, i18n } = useTranslation()
   const [url, setUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const activeWorkspace = useAppSelector((s) => s.settings.activeWorkspace)
 
   const monthKey = toMonthKey(month)
 
@@ -41,7 +43,7 @@ export function ShareCalendarModal({ open, onClose, month }: ShareCalendarModalP
 
     const slug = format(month, 'MMMM-yyyy').toLowerCase()
     api
-      .createShare(monthKey, slug)
+      .createShare(monthKey, slug, activeWorkspace)
       .then((share) => {
         if (!cancelled) setUrl(appUrl(`share/${share.id}`))
       })
@@ -52,7 +54,7 @@ export function ShareCalendarModal({ open, onClose, month }: ShareCalendarModalP
     return () => {
       cancelled = true
     }
-  }, [open, monthKey, month, t])
+  }, [open, monthKey, month, t, activeWorkspace])
 
   const copy = async () => {
     if (!url) return

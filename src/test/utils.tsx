@@ -43,6 +43,7 @@ export function makePost(overrides: Partial<Post> = {}): Post {
   seq += 1
   return {
     id: `post_${seq}`,
+    workspace: 'wonderlearn',
     title: 'Back to School Campaign',
     description: 'A promotional post welcoming students back to school.',
     topic: 'Back to School',

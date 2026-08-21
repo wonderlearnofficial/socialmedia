@@ -1,4 +1,4 @@
-import type { ContentType, PostStatus, SocialPlatform } from '@/types'
+import type { ContentType, PostStatus, SocialPlatform, WorkspaceId } from '@/types'
 import {
   CirclePlay,
   Clapperboard,
@@ -99,7 +99,13 @@ export const CONTENT_TYPE_META: Record<ContentType, { labelKey: string; icon: Lu
   text: { labelKey: 'contentType.text', icon: FileText },
 }
 
-export const WORKSPACE_DEFAULT = 'Wonderlearn'
-export const CLIENT_BRAND = 'Wonderlearn'
+export const WORKSPACE_META: Record<
+  WorkspaceId,
+  { label: string; defaultPlatforms: SocialPlatform[] }
+> = {
+  wonderlearn: { label: 'Wonderlearn', defaultPlatforms: [] },
+  dr_wael: { label: 'Dr. Wael', defaultPlatforms: ['linkedin'] },
+}
+
 export const MANAGER_NAME = 'Sarah Chen'
 export const OWNER_NAME = 'Marwa'
