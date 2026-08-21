@@ -75,9 +75,12 @@ alter table posts add constraint posts_drivestage_check
 --
 -- Dropped and recreated rather than replaced: adding a parameter makes a new
 -- signature, and leaving the 6-argument version in place would make calls
--- ambiguous.
+-- ambiguous. Both signatures are dropped so this whole file stays re-runnable
+-- — otherwise a second run fails on "function already exists with same
+-- argument types" once the 7-argument version is in place.
 
 drop function if exists add_feedback(uuid, text, text, text, text, text);
+drop function if exists add_feedback(uuid, text, text, text, text, text, text);
 
 create function add_feedback(
   p_post_id uuid,
