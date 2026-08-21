@@ -2,15 +2,14 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 import { BrandLockup } from '@/components/shared/Brand'
-import { Button } from '@/components/ui/button'
 import { PinInput } from '@/features/auth/PinInput'
 import { signInWithPin } from '@/lib/signIn'
 
 /**
  * The manager dashboard requires a 5-digit PIN; the public review page
  * (/share/:id) never does — that split is deliberate, not an oversight.
- * One PIN, no visible "admin vs user" choice: whichever of the two fixed
- * accounts it matches decides the signed-in identity.
+ * One PIN, no visible "admin vs user" choice: entering the correct 5-digit PIN
+ * automatically signs in without needing an extra click.
  */
 export function LoginPage() {
   const { t } = useTranslation()
@@ -41,29 +40,33 @@ export function LoginPage() {
           <p className="text-sm text-muted-foreground">{t('login.subtitle')}</p>
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            trySignIn(pin)
-          }}
-          className="space-y-4 rounded-xl border bg-card p-5"
-        >
+        <div className="space-y-4 rounded-xl border bg-card p-6 shadow-xs">
           <p className="text-center text-xs font-medium text-muted-foreground">
             {t('login.keyLabel')}
           </p>
           <PinInput
             value={pin}
-            onChange={setPin}
+            onChange={(val) => {
+              setError(null)
+              setPin(val)
+            }}
             onComplete={trySignIn}
             error={Boolean(error)}
+            disabled={pending}
             autoFocus
           />
-          {error && <p className="text-center text-xs font-medium text-destructive">{error}</p>}
-          <Button type="submit" className="w-full" disabled={pending || pin.length !== 5}>
-            {pending && <Loader2 className="animate-spin" />}
-            {t('login.submit')}
-          </Button>
-        </form>
+
+          <div className="flex min-h-5 items-center justify-center">
+            {pending ? (
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground animate-pulse">
+                <Loader2 className="size-3.5 animate-spin" />
+                <span>{t('login.verifying', 'Verifying PIN…')}</span>
+              </div>
+            ) : error ? (
+              <p className="text-center text-xs font-medium text-destructive">{error}</p>
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>
   )

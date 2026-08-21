@@ -301,6 +301,7 @@
     "keyLabel": "Enter your 5-digit PIN",
     "submit": "Sign in",
     "invalid": "That PIN doesn't match either account",
+    "verifying": "Verifying PIN…",
     "signOut": "Sign out"
   },
   "common": {

@@ -20,7 +20,6 @@ async function fillPin(page: Page, pin: string) {
 async function login(page: Page) {
   await page.goto('/')
   await fillPin(page, loginPin!)
-  await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('heading', { name: 'Content Calendar' })).toBeVisible()
 }
 
@@ -33,7 +32,6 @@ test('the manager dashboard requires signing in', async ({ page }) => {
 test('an invalid PIN is rejected', async ({ page }) => {
   await page.goto('/')
   await fillPin(page, '00000')
-  await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByText("doesn't match either account")).toBeVisible()
 })
 
