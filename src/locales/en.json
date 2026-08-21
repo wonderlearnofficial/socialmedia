@@ -206,10 +206,9 @@
   },
   "login": {
     "subtitle": "Sign in to manage the content calendar",
-    "keyLabel": "Access key",
-    "keyPlaceholder": "Enter your key",
+    "keyLabel": "Enter your 5-digit PIN",
     "submit": "Sign in",
-    "invalid": "That key doesn't match either account",
+    "invalid": "That PIN doesn't match either account",
     "signOut": "Sign out"
   },
   "common": {

@@ -108,6 +108,14 @@ export const WORKSPACE_META: Record<
 }
 
 // Two fixed Supabase Auth accounts back the manager login — never shown in
-// the UI, just the identity a passphrase ("key") signs in as.
+// the UI, just the identity a 5-digit PIN signs in as.
 export const ADMIN_EMAIL = 'admin@internal.wonderlearn.app'
 export const USER_EMAIL = 'user@internal.wonderlearn.app'
+
+// Supabase rejects passwords shorter than its project-level minimum (6 by
+// default) — a bare 5-digit PIN would fail that check. Padding it with a
+// fixed prefix satisfies the length requirement without asking anyone to
+// type more than 5 digits; it isn't extra secrecy (the prefix ships in the
+// client bundle same as everything else here), just a length workaround.
+const PIN_PASSWORD_PREFIX = 'wl-pin-'
+export const pinToPassword = (pin: string) => `${PIN_PASSWORD_PREFIX}${pin}`
