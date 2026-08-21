@@ -1,6 +1,11 @@
 import { supabase } from './supabaseClient'
 import type {
+  DriveFile,
+  DriveFolder,
+  DriveStage,
   FeedbackInput,
+  FileRecordInput,
+  FolderInput,
   Post,
   PostInput,
   ShareLink,
@@ -89,19 +94,28 @@ export const api = {
       feedback: _feedback,
       createdAt: _createdAt,
       updatedAt: _updatedAt,
+      // A copy is a fresh design: it re-enters review, and it must not claim
+      // the original's Drive file or inherit its completion record.
+      driveFileId: _driveFileId,
+      driveStage: _driveStage,
+      reviewedBy: _reviewedBy,
+      completedAt: _completedAt,
       ...rest
     } = source
     const data = await unwrap<Post>(
       supabase
         .from('posts')
-        .insert({ ...rest, title: `${source.title} (Copy)`, status: 'draft' })
+        .insert({ ...rest, title: `${source.title} (Copy)`, status: 'review' })
         .select(POST_SELECT)
         .single(),
     )
     return sortFeedback(data)
   },
 
-  addFeedback: async (id: string, input: FeedbackInput) => {
+  /** `driveStage` rides along because the client reviewing a share link is
+   *  anonymous: `add_feedback` is the only write it's allowed, so recording
+   *  that the image reached Done has to happen inside the same call. */
+  addFeedback: async (id: string, input: FeedbackInput, driveStage?: DriveStage) => {
     await unwrap(
       supabase.rpc('add_feedback', {
         p_post_id: id,
@@ -110,6 +124,7 @@ export const api = {
         p_kind: input.kind,
         p_message: input.message,
         p_status: input.status ?? null,
+        p_drive_stage: driveStage ?? null,
       }),
     )
     const data = await unwrap<Post>(
@@ -136,4 +151,47 @@ export const api = {
 
   createTeamMember: (input: TeamMemberInput) =>
     unwrap<TeamMember>(supabase.from('team_members').insert(input).select().single()),
+
+  listFolders: (workspace: WorkspaceId) =>
+    unwrap<DriveFolder[]>(
+      supabase.from('folders').select().eq('workspace', workspace).order('name'),
+    ),
+
+  createFolder: (input: FolderInput) =>
+    unwrap<DriveFolder>(supabase.from('folders').insert(input).select().single()),
+
+  updateFolder: (id: string, patch: Partial<FolderInput>) =>
+    unwrap<DriveFolder>(supabase.from('folders').update(patch).eq('id', id).select().single()),
+
+  deleteFolder: async (id: string) => {
+    const { error } = await supabase.from('folders').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+    return { id }
+  },
+
+  listFiles: (workspace: WorkspaceId) =>
+    unwrap<DriveFile[]>(
+      supabase.from('files').select().eq('workspace', workspace).order('createdAt', {
+        ascending: false,
+      }),
+    ),
+
+  createFile: (input: FileRecordInput) =>
+    unwrap<DriveFile>(supabase.from('files').insert(input).select().single()),
+
+  updateFile: (id: string, patch: Partial<FileRecordInput>) =>
+    unwrap<DriveFile>(
+      supabase
+        .from('files')
+        .update({ ...patch, updatedAt: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single(),
+    ),
+
+  deleteFile: async (id: string) => {
+    const { error } = await supabase.from('files').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+    return { id }
+  },
 }

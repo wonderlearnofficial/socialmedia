@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { detectMedia, driveThumbnailUrl, fileNameFromUrl, googleDriveFileId } from './media'
+import {
+  detectMedia,
+  driveFilePreviewUrl,
+  driveThumbnailUrl,
+  fileNameFromUrl,
+  googleDriveFileId,
+} from './media'
 
 describe('googleDriveFileId', () => {
   it('reads the id from a /file/d/ share URL', () => {
@@ -71,5 +77,15 @@ describe('fileNameFromUrl', () => {
 
   it('returns null for extension-less paths', () => {
     expect(fileNameFromUrl('https://example.com/some/page')).toBeNull()
+  })
+})
+
+describe('driveFilePreviewUrl', () => {
+  // Everything that isn't an image — PDFs, video, Docs, Slides, Sheets — is
+  // shown through this embed rather than the thumbnail endpoint.
+  it('builds the embeddable Drive viewer URL for any file id', () => {
+    expect(driveFilePreviewUrl('1AbCdEfGhIjKlM')).toBe(
+      'https://drive.google.com/file/d/1AbCdEfGhIjKlM/preview',
+    )
   })
 })

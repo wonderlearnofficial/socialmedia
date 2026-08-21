@@ -13,6 +13,7 @@ const AnalyticsPage = lazy(() =>
   import('./pages/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })),
 )
 const TeamPage = lazy(() => import('./pages/TeamPage').then((m) => ({ default: m.TeamPage })))
+const FilesPage = lazy(() => import('./pages/FilesPage').then((m) => ({ default: m.FilesPage })))
 const SettingsPage = lazy(() =>
   import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 )
@@ -39,6 +40,7 @@ export const router = createBrowserRouter(
         { path: 'posts', element: withSuspense(<PostsPage />) },
         { path: 'analytics', element: withSuspense(<AnalyticsPage />) },
         { path: 'team', element: withSuspense(<TeamPage />) },
+        { path: 'files', element: withSuspense(<FilesPage />) },
         { path: 'settings', element: withSuspense(<SettingsPage />) },
       ],
     },

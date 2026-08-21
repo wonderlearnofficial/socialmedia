@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { NavLink } from 'react-router-dom'
-import { BarChart3, CalendarDays, LayoutList, Settings, Users } from 'lucide-react'
+import { BarChart3, CalendarDays, FolderOpen, LayoutList, Settings, Users } from 'lucide-react'
 import { BrandLockup } from '@/components/shared/Brand'
 import { WORKSPACE_META } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -12,6 +12,7 @@ const NAV = [
   { to: '/posts', key: 'nav.posts', icon: LayoutList },
   { to: '/analytics', key: 'nav.analytics', icon: BarChart3 },
   { to: '/team', key: 'nav.team', icon: Users },
+  { to: '/files', key: 'nav.files', icon: FolderOpen },
   { to: '/settings', key: 'nav.settings', icon: Settings },
 ] as const
 
@@ -51,8 +52,8 @@ export function Sidebar() {
 
   return (
     <aside className="hidden w-56 shrink-0 flex-col border-e lg:flex">
-      <div className="flex h-14 items-center border-b px-4">
-        <BrandLockup subtitle={t('app.tagline')} size="sm" />
+      <div className="flex h-16 items-center border-b px-4">
+        <BrandLockup fluid />
       </div>
       <div className="border-b p-3">
         <WorkspaceSwitcher />

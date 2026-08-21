@@ -11,7 +11,7 @@ const posts = [
     title: 'Behind The Scenes',
     time: '18:00',
     platforms: ['tiktok'],
-    status: 'changes_requested',
+    status: 'changes_required',
   }),
   makePost({ id: 'c', title: 'Next Day Post', date: '2026-08-22' }),
 ]

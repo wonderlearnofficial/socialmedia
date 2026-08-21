@@ -29,8 +29,9 @@ export function AnalyticsPage() {
   const monthPosts = useMemo(() => postsForMonth(posts, toMonthKey(date)), [posts, date])
 
   const counts = countByStatus(monthPosts)
-  const approvalRate = monthPosts.length
-    ? Math.round(((counts.approved + counts.published) / monthPosts.length) * 100)
+  // "Done designing" — everything past review, whether or not it's published yet.
+  const completionRate = monthPosts.length
+    ? Math.round(((counts.waiting_to_post + counts.posted) / monthPosts.length) * 100)
     : 0
 
   const byPlatform = SOCIAL_PLATFORMS.map((platform) => ({
@@ -40,7 +41,7 @@ export function AnalyticsPage() {
   }))
 
   // Slice colours come from the status palette so the chart agrees with the
-  // badges everywhere else in the app (green = approved, rose = changes, …).
+  // badges everywhere else in the app (green = waiting to post, rose = changes, …).
   const byStatus = POST_STATUSES.filter((s) => counts[s] > 0).map((status) => ({
     name: t(STATUS_META[status].labelKey),
     value: counts[status],
@@ -70,9 +71,9 @@ export function AnalyticsPage() {
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat label={t('analytics.totalPosts')} value={monthPosts.length} />
-          <Stat label={t('analytics.awaiting')} value={counts.in_review} />
-          <Stat label={t('analytics.approvalRate')} value={`${approvalRate}%`} />
-          <Stat label={t('analytics.needsChanges')} value={counts.changes_requested} />
+          <Stat label={t('analytics.awaiting')} value={counts.review} />
+          <Stat label={t('analytics.completionRate')} value={`${completionRate}%`} />
+          <Stat label={t('analytics.needsChanges')} value={counts.changes_required} />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">

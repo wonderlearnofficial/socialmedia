@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { useAppSelector } from '@/store/hooks'
-import type { FeedbackInput, PostInput } from '@/types'
+import type { DriveStage, FeedbackInput, PostInput } from '@/types'
 
 export function usePostsQuery() {
   const workspace = useAppSelector((s) => s.settings.activeWorkspace)
@@ -58,7 +58,15 @@ export function useDuplicatePost() {
 export function useAddFeedback() {
   const invalidate = useInvalidatePosts()
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: FeedbackInput }) => api.addFeedback(id, input),
+    mutationFn: ({
+      id,
+      input,
+      driveStage,
+    }: {
+      id: string
+      input: FeedbackInput
+      driveStage?: DriveStage
+    }) => api.addFeedback(id, input, driveStage),
     onSuccess: invalidate,
   })
 }

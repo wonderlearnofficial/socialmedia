@@ -35,6 +35,16 @@ export function driveThumbnailUrl(fileId: string, width = 1200) {
   return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${width}`
 }
 
+/**
+ * Drive's own embeddable viewer. The thumbnail endpoint returns a still for
+ * most file types, but this renders the real thing — paging through a PDF,
+ * playing a video, showing a Doc / Slides / Sheet — so the preview panel can
+ * handle every type Drive holds rather than images alone.
+ */
+export function driveFilePreviewUrl(fileId: string) {
+  return `https://drive.google.com/file/d/${fileId}/preview`
+}
+
 export function dropboxDirectUrl(url: string) {
   return url.includes('dl=0') ? url.replace('dl=0', 'raw=1') : url
 }

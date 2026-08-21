@@ -12,58 +12,95 @@ MONTHLY CALENDAR → CLICK DAY → SEE ALL POSTS → CLICK POST
 It is not a publishing tool. Nothing is posted to any social network — the product is the
 plan, the conversation about it, and the approval.
 
+## The two workspaces
+
+The app has two independent content calendars, switched via a tab in the header:
+
+| Workspace   | Platforms                                         |
+| ----------- | ------------------------------------------------- |
+| Wonderlearn | Instagram, Facebook, YouTube, TikTok, X, LinkedIn |
+| Dr. Wael    | LinkedIn only                                     |
+
+Each has its own posts, team roster, and review links — switching tabs never mixes their
+data. Both start empty; there is no seed/demo content in production.
+
+## Real infrastructure, no server
+
+- **Database & auth**: [Supabase](https://supabase.com) (hosted Postgres + Auth), talked to
+  directly from the browser via `@supabase/supabase-js`. There is no backend of ours —
+  Row Level Security policies in Postgres are what actually keep data safe, not a server.
+- **Hosting**: static build deployed to **GitHub Pages** on every push to `main` (see
+  `.github/workflows/deploy.yml`). No server to operate, ever.
+- **File uploads**: a small Google Apps Script web app (owned outside this repo) receives
+  files from the browser and drops them into a Google Drive folder, returning a shareable
+  link. See `src/services/upload.ts`.
+
+## Login
+
+The manager dashboard is gated by a **5-digit PIN** (`src/features/auth/PinInput.tsx`).
+Under the hood there are two fixed Supabase Auth accounts — one PIN each — but there is
+**no admin/user distinction**: both accounts can do exactly the same things. The only
+reason there are two is so posts, comments, and status changes get attributed to the
+right real name (e.g. "Dr. Wael Elmayyah" vs. "Mazen") instead of a generic "Manager".
+
+The public review page (`/share/:id`) **never** requires login — that's the whole point
+of it. Anyone with the link can open it, see the calendar, and approve or request
+changes on a post.
+
 ## Getting started
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173
+cp .env.local.example .env.local   # fill in the Supabase URL/key and upload script URL
+npm run dev                        # http://localhost:5173
 ```
 
-| Script             | What it does                     |
-| ------------------ | -------------------------------- |
-| `npm run dev`      | Vite dev server                  |
-| `npm run build`    | Typecheck, then production build |
-| `npm run preview`  | Serve the production build       |
-| `npm test`         | Vitest unit + component tests    |
-| `npm run test:e2e` | Playwright end-to-end tests      |
-| `npm run lint`     | ESLint                           |
-| `npm run format`   | Prettier                         |
+`.env.local` is never committed. Ask whoever owns the Supabase project for the URL and
+publishable (anon) key, and the Google Apps Script exec URL for uploads.
 
-## The demo
+Optional local-only convenience: set `VITE_DEV_LOGIN_PIN` in `.env.local` to a real PIN
+and `npm run dev` signs you in automatically — no need to retype the PIN on every reload.
+It has no effect on production builds or on `npm run test:e2e` (which always exercises the
+real login gate).
 
-The app seeds **39 posts across August 2026** for Wonderlearn, built around a Back to
-School campaign. **August 21** is the scenario day and shows the whole review loop at once:
-
-| Platform  | Post                         | Status            |
-| --------- | ---------------------------- | ----------------- |
-| Instagram | Back to School Campaign      | In Review         |
-| Facebook  | Back to School Campaign      | Approved          |
-| X         | Live Webinar Teaser          | Scheduled         |
-| TikTok    | Behind The Scenes            | Changes Requested |
-| YouTube   | Product Video — Class Quests | In Review         |
-
-Open the TikTok post to see the owner's feedback: _"Please use the second version of the
-video."_
-
-To see the owner's side, click **Share Calendar → Open preview**. The share link opens
-**review mode**: same calendar, no sidebar, no editing — just approve and request changes.
-
-Settings → _Reset demo data_ restores the seed at any time.
+| Script                | What it does                                                       |
+| --------------------- | ------------------------------------------------------------------ |
+| `npm run dev`         | Vite dev server                                                    |
+| `npm run build`       | Typecheck, then production build                                   |
+| `npm run build:pages` | Production build with the `/socialmedia/` base path (what CI runs) |
+| `npm run preview`     | Serve the production build                                         |
+| `npm test`            | Vitest unit + component tests                                      |
+| `npm run test:e2e`    | Playwright end-to-end tests                                        |
+| `npm run lint`        | ESLint                                                             |
+| `npm run format`      | Prettier                                                           |
 
 ## How it works
 
-Data lives in the browser. `src/services/mockServer.ts` is a small in-memory API mounted as
-a custom **axios adapter** and persisted to `localStorage`, so approvals and feedback
-survive a reload. Every component talks to it through `src/services/api.ts` and TanStack
-Query — to go live, point `http` at a real backend and drop the adapter. No other code changes.
+`src/services/api.ts` is the single seam every hook calls through (`listPosts`,
+`createPost`, `addFeedback`, …) — it talks to Supabase via PostgREST. Postgres columns use
+quoted mixed-case names (`"contentType"`, `"createdAt"`) specifically so no
+snake_case↔camelCase mapping layer is needed on either side.
 
-Because the data is per-browser, a share link only shows content in the browser that
-created it.
+Workspace scoping happens once, upstream, inside the query layer
+(`src/hooks/usePosts.ts`'s query key is `['posts', workspace]`) rather than as a filter
+applied per-page — every page that reads posts inherits the correct scoping for free.
+
+### Database
+
+Schema lives in `supabase/migrations/` as plain SQL, run manually in the Supabase SQL
+Editor (nothing here runs automatically — there's no CI migration step). Tables:
+`posts`, `feedback`, `shares`, `team_members`. Row Level Security: every table is publicly
+**readable** (required for the no-login review page); every **write** requires a signed-in
+session, except approving/requesting changes, which goes through a narrow
+`add_feedback()` database function so an anonymous client owner can act without being
+able to edit anything else.
 
 ### State
 
-- **Redux Toolkit** — UI state: filters, calendar view, which modal is open, settings.
-- **TanStack Query** — server state: posts, share links, mutations.
+- **Redux Toolkit** — local UI state only: filters, calendar view, which modal is open,
+  theme/language settings, which workspace tab is active. Never data that lives in
+  Postgres.
+- **TanStack Query** — server state: posts, feedback, shares, team members.
 
 Keeping them separate means filtering the calendar never refetches, and approving a post
 updates every view at once.
@@ -72,21 +109,22 @@ updates every view at once.
 
 ```
 src/
-├── app/             # providers, router, pages, error boundary, theme sync
+├── app/             # providers, router, pages, RequireAuth, error boundary, theme sync
 ├── components/
 │   ├── ui/          # shadcn-style primitives on Radix
-│   ├── layout/      # app shell, sidebar, page header
+│   ├── layout/      # app shell, sidebar, workspace switcher, page header
 │   └── shared/      # PlatformIcon, StatusBadge, Brand, EmptyState
 ├── features/
 │   ├── calendar/    # grid, day modal, list, mobile agenda, filters, search
-│   ├── posts/       # details drawer, editor, platform selector, social preview
+│   ├── posts/       # details drawer, editor, platform selector, social preview, uploads
 │   ├── review/      # review thread, feedback form
 │   ├── sharing/     # share modal
 │   ├── media/       # provider detection, previews, thumbnails
+│   ├── auth/         # PIN input
 │   ├── analytics/   # (charts live in app/pages/AnalyticsPage)
 │   └── team/
 ├── store/slices/    # filters, view, settings
-├── services/        # axios, mock server, API, query client
+├── services/        # supabaseClient, api, upload, queryClient
 ├── hooks/  lib/  types/  locales/
 ```
 
@@ -96,13 +134,19 @@ src/
 official brand paths, sized with `className`, optionally painted in brand colors with
 `brand`. TikTok and X get a light variant so their black marks stay visible on dark.
 
+### File uploads
+
+The post editor's **Upload files** / **Upload folder** buttons send files straight to a
+Google Apps Script endpoint as base64, which stores them in Drive and returns a link —
+filling in the post's content link automatically. Capped at 20MB per file (Apps Script's
+request-size ceiling). Pasting an existing Drive/Dropbox/OneDrive/Figma/Canva link still
+works exactly as before; uploading is just a shortcut for getting one.
+
 ### Dragging
 
 Rescheduling a post is a calendar interaction, so it uses **FullCalendar's own** drag
 system (`@fullcalendar/interaction`) — drop a post on another day and it re-times and
-saves, with a toast confirming the new date. `dnd-kit` is installed for custom drag
-interactions outside the calendar; nothing in the current surface area needs one, so it is
-not yet exercised.
+saves, with a toast confirming the new date.
 
 ### Media previews
 
@@ -130,16 +174,26 @@ title, time, and status as colour, never the caption.
 
 - **Vitest + Testing Library** — filtering, date and media logic; the day modal and
   `PlatformIcon` as components.
-- **Playwright** — the full workflow: calendar → day → post → review, sharing into review
-  mode, requesting changes, search and filters, creating a post, and drag-to-reschedule.
+- **Playwright** — runs against a real dev server talking to the real Supabase project.
+  Three tests need no credentials (login gate present, invalid PIN rejected, public share
+  page never asks for login); the authenticated flow (create a post, confirm it appears,
+  delete it) reads a PIN from `E2E_LOGIN_PIN` and skips if that's unset, rather than
+  hardcoding a real credential into a committed file.
 
 ```bash
 npm test
-npm run test:e2e
+E2E_LOGIN_PIN=xxxxx npm run test:e2e
 ```
+
+## Deployment
+
+Every push to `main` runs lint, typecheck, and unit tests, then builds and deploys to
+GitHub Pages via `.github/workflows/deploy.yml`. Required repo secrets (Settings → Secrets
+and variables → Actions): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
+`VITE_UPLOAD_SCRIPT_URL`.
 
 ## Stack
 
 React 19 · TypeScript · Vite · Tailwind CSS v4 · Radix UI · Redux Toolkit · TanStack Query ·
-axios · React Hook Form + Zod · FullCalendar · Framer Motion · GSAP · Recharts · Sonner ·
-i18next · Vitest · Playwright
+Supabase (Postgres + Auth) · React Hook Form + Zod · FullCalendar · Framer Motion · GSAP ·
+Recharts · Sonner · i18next · Vitest · Playwright

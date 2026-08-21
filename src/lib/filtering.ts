@@ -1,4 +1,4 @@
-import type { Post, PostStatus, SocialPlatform } from '@/types'
+import { POST_STATUSES, type Post, type PostStatus, type SocialPlatform } from '@/types'
 
 export interface PostFilters {
   platforms: SocialPlatform[]
@@ -38,14 +38,7 @@ export function postsForMonth(posts: Post[], monthKey: string): Post[] {
 }
 
 export function countByStatus(posts: Post[]): Record<PostStatus, number> {
-  const counts = {
-    draft: 0,
-    in_review: 0,
-    changes_requested: 0,
-    approved: 0,
-    scheduled: 0,
-    published: 0,
-  } satisfies Record<PostStatus, number>
+  const counts = Object.fromEntries(POST_STATUSES.map((s) => [s, 0])) as Record<PostStatus, number>
   for (const p of posts) counts[p.status] += 1
   return counts
 }

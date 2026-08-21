@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ExternalLink, ImageOff, Play } from 'lucide-react'
+import { ExternalLink, ImageOff, Loader2, Play, UploadCloud } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useFileDrop } from '@/features/files/useFileDrop'
 import { CONTENT_TYPE_META } from '@/lib/constants'
 import { detectMedia, fileNameFromUrl, type MediaProviderId } from '@/lib/media'
 import { cn } from '@/lib/utils'
@@ -18,15 +19,27 @@ interface MediaPreviewProps {
   className?: string
   /** Aspect of the preview frame. */
   aspect?: 'square' | 'video' | 'portrait' | 'auto'
+  /** When set, an empty preview becomes a click-or-drag upload target
+   *  instead of a plain "no media" placeholder. */
+  onUpload?: (files: File[]) => void
+  uploading?: boolean
 }
 
 /**
  * Large media preview. Every remote source is treated as untrusted — a failed
  * image or video collapses into a labelled fallback card rather than a broken box.
  */
-export function MediaPreview({ post, className, aspect = 'auto' }: MediaPreviewProps) {
+export function MediaPreview({
+  post,
+  className,
+  aspect = 'auto',
+  onUpload,
+  uploading,
+}: MediaPreviewProps) {
   const { t } = useTranslation()
   const [state, setState] = useState<LoadState>('idle')
+  const fileInput = useRef<HTMLInputElement>(null)
+  const { isDragging, dropProps } = useFileDrop((files) => onUpload?.(files))
 
   const media = useMemo(
     () => (post.contentUrl ? detectMedia(post.contentUrl) : null),
@@ -58,11 +71,49 @@ export function MediaPreview({ post, className, aspect = 'auto' }: MediaPreviewP
 
   // Nothing attached at all.
   if (!source && !post.contentUrl) {
+    if (!onUpload) {
+      return (
+        <div className={cn(frame, 'grid place-items-center')}>
+          <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
+            <TypeIcon className="size-6" />
+            <p className="text-xs">{t('post.noMedia')}</p>
+          </div>
+        </div>
+      )
+    }
     return (
-      <div className={cn(frame, 'grid place-items-center')}>
+      <div
+        {...dropProps}
+        role="button"
+        tabIndex={0}
+        onClick={() => !uploading && fileInput.current?.click()}
+        onKeyDown={(e) => e.key === 'Enter' && !uploading && fileInput.current?.click()}
+        className={cn(
+          frame,
+          'grid cursor-pointer place-items-center border-dashed transition-colors hover:bg-accent/40',
+          isDragging && 'border-primary bg-primary/5',
+        )}
+      >
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files) onUpload(Array.from(e.target.files))
+            e.target.value = ''
+          }}
+        />
         <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
-          <TypeIcon className="size-6" />
-          <p className="text-xs">{t('post.noMedia')}</p>
+          {uploading ? (
+            <Loader2 className="size-6 animate-spin" />
+          ) : (
+            <UploadCloud className="size-6" />
+          )}
+          <p className="text-xs font-medium">
+            {uploading ? t('post.uploadingMedia') : t('post.uploadMediaPrompt')}
+          </p>
         </div>
       </div>
     )

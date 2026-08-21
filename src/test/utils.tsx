@@ -52,7 +52,7 @@ export function makePost(overrides: Partial<Post> = {}): Post {
     time: '10:00',
     platforms: ['instagram'],
     contentType: 'image',
-    status: 'in_review',
+    status: 'review',
     feedback: [],
     createdAt: '2026-08-01T00:00:00.000Z',
     updatedAt: '2026-08-01T00:00:00.000Z',

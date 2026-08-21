@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Post } from '@/types'
+import { POST_STATUSES, type Post } from '@/types'
 import { countByStatus, filterPosts, postsForDay, postsForMonth, sortPosts } from './filtering'
 
 const base: Omit<Post, 'id' | 'title' | 'date' | 'time' | 'platforms' | 'status'> = {
@@ -24,7 +24,7 @@ const posts: Post[] = [
     date: '2026-08-21',
     time: '10:00',
     platforms: ['instagram'],
-    status: 'in_review',
+    status: 'review',
   },
   {
     ...base,
@@ -33,7 +33,7 @@ const posts: Post[] = [
     date: '2026-08-21',
     time: '18:00',
     platforms: ['tiktok'],
-    status: 'changes_requested',
+    status: 'changes_required',
   },
   {
     ...base,
@@ -42,7 +42,7 @@ const posts: Post[] = [
     date: '2026-09-01',
     time: '09:00',
     platforms: ['instagram', 'facebook'],
-    status: 'approved',
+    status: 'waiting_to_post',
   },
 ]
 
@@ -64,7 +64,7 @@ describe('filterPosts', () => {
   })
 
   it('filters by status', () => {
-    const result = filterPosts(posts, { ...noFilters, statuses: ['changes_requested'] })
+    const result = filterPosts(posts, { ...noFilters, statuses: ['changes_required'] })
     expect(result.map((p) => p.id)).toEqual(['2'])
   })
 
@@ -78,7 +78,7 @@ describe('filterPosts', () => {
   it('combines filters with AND', () => {
     const result = filterPosts(posts, {
       platforms: ['instagram'],
-      statuses: ['approved'],
+      statuses: ['waiting_to_post'],
       search: '',
     })
     expect(result.map((p) => p.id)).toEqual(['3'])
@@ -104,10 +104,16 @@ describe('sorting and grouping', () => {
 describe('countByStatus', () => {
   it('counts each status and zero-fills the rest', () => {
     const counts = countByStatus(posts)
-    expect(counts.in_review).toBe(1)
-    expect(counts.changes_requested).toBe(1)
-    expect(counts.approved).toBe(1)
-    expect(counts.draft).toBe(0)
-    expect(counts.published).toBe(0)
+    expect(counts.review).toBe(1)
+    expect(counts.changes_required).toBe(1)
+    expect(counts.waiting_to_post).toBe(1)
+    expect(counts.posted).toBe(0)
+  })
+
+  // The calendar summary, filter bar and analytics chart all iterate
+  // POST_STATUSES against these counts, so a status without a bucket would
+  // read as undefined rather than zero.
+  it('has a bucket for every status in POST_STATUSES', () => {
+    expect(Object.keys(countByStatus([])).sort()).toEqual([...POST_STATUSES].sort())
   })
 })

@@ -35,9 +35,9 @@ export function ReviewPanel({ feedback }: { feedback: Feedback[] }) {
           const isStatus = entry.kind === 'status_change' && entry.status
           const meta = entry.status ? STATUS_META[entry.status] : null
           const Icon =
-            entry.status === 'approved'
+            entry.status === 'waiting_to_post'
               ? CheckCircle2
-              : entry.status === 'changes_requested'
+              : entry.status === 'changes_required'
                 ? RotateCcw
                 : MessageSquare
 
@@ -76,9 +76,9 @@ export function ReviewPanel({ feedback }: { feedback: Feedback[] }) {
                     )}
                   >
                     <Icon className="size-3" />
-                    {entry.status === 'approved'
-                      ? t('review.approvedEvent')
-                      : entry.status === 'changes_requested'
+                    {entry.status === 'waiting_to_post'
+                      ? t('review.completedEvent')
+                      : entry.status === 'changes_required'
                         ? t('review.changesEvent')
                         : t('review.statusEvent', { status: t(meta.labelKey) })}
                   </span>

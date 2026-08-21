@@ -8,6 +8,7 @@ import {
   Clock,
   Copy,
   MoreHorizontal,
+  Paperclip,
   Pencil,
   RotateCcw,
   Share2,
@@ -42,19 +43,28 @@ import { MediaPreview } from '@/features/media/MediaPreview'
 import { FeedbackForm } from '@/features/review/FeedbackForm'
 import { ReviewPanel } from '@/features/review/ReviewPanel'
 import { SocialPreview } from '@/features/posts/SocialPreview'
-import { useAddFeedback, useDeletePost, useDuplicatePost } from '@/hooks/usePosts'
+import { useAddFeedback, useDeletePost, useDuplicatePost, useUpdatePost } from '@/hooks/usePosts'
+import { moveFileToStage, uploadFile } from '@/services/upload'
+import { useFiles } from '@/hooks/useFiles'
 import { useSession } from '@/hooks/useSession'
+import { formatBytes } from '@/lib/format'
 import { PLATFORM_META, STATUS_META } from '@/lib/constants'
-import { formatDateFull, formatTime } from '@/lib/dates'
+import { formatDateFull, formatTime, formatTimestamp } from '@/lib/dates'
 import { cn } from '@/lib/utils'
-import { POST_STATUSES, type Post, type PostStatus, type SocialPlatform } from '@/types'
+import {
+  POST_STATUSES,
+  type DriveStage,
+  type Post,
+  type PostStatus,
+  type SocialPlatform,
+} from '@/types'
 
 interface PostDetailsDrawerProps {
   post: Post | null
   open: boolean
   onClose: () => void
   onEdit?: (id: string) => void
-  /** Owner review mode: approve / request changes, no authoring tools. */
+  /** Owner review mode: mark complete / request changes, no authoring tools. */
   reviewer?: { name: string; role: 'owner' | 'manager' } | null
   readOnly?: boolean
 }
@@ -69,13 +79,18 @@ export function PostDetailsDrawer({
 }: PostDetailsDrawerProps) {
   const { t, i18n } = useTranslation()
   const [changesOpen, setChangesOpen] = useState(false)
+  const [completing, setCompleting] = useState(false)
+  const [uploadingMedia, setUploadingMedia] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [previewPlatform, setPreviewPlatform] = useState<SocialPlatform | null>(null)
 
   const addFeedback = useAddFeedback()
   const duplicate = useDuplicatePost()
   const remove = useDeletePost()
+  const update = useUpdatePost()
   const { displayName } = useSession()
+  const { data: allFiles = [] } = useFiles(post?.workspace ?? 'wonderlearn')
+  const attachedFiles = allFiles.filter((f) => f.postId === post?.id)
 
   // Reset transient UI whenever a different post is opened.
   useEffect(() => {
@@ -90,24 +105,40 @@ export function PostDetailsDrawer({
   const author = reviewer?.name ?? displayName
   const role = reviewer?.role ?? 'manager'
 
-  const approve = async () => {
+  const isComplete = post.status === 'waiting_to_post' || post.status === 'posted'
+
+  /**
+   * Marking complete is two systems agreeing: the image moves from Review to
+   * Done in Drive, and the post becomes Waiting to Post. Drive goes first —
+   * if the move fails, nothing else happens, so the status never claims a
+   * handoff that didn't actually occur.
+   */
+  const complete = async () => {
+    let driveStage: DriveStage | undefined
+    if (post.driveFileId && post.driveStage !== 'done') {
+      setCompleting(true)
+      try {
+        await moveFileToStage(post.driveFileId, 'done')
+        driveStage = 'done'
+      } catch {
+        toast.error(t('post.moveFailed'))
+        return
+      } finally {
+        setCompleting(false)
+      }
+    }
     await addFeedback.mutateAsync({
       id: post.id,
-      input: {
-        author,
-        role,
-        kind: 'status_change',
-        status: 'approved',
-        message: '',
-      },
+      input: { author, role, kind: 'status_change', status: 'waiting_to_post', message: '' },
+      driveStage,
     })
-    toast.success(t('post.approvedToast'))
+    toast.success(t('post.completedToast'))
   }
 
   const requestChanges = async (message: string) => {
     await addFeedback.mutateAsync({
       id: post.id,
-      input: { author, role, kind: 'status_change', status: 'changes_requested', message },
+      input: { author, role, kind: 'status_change', status: 'changes_required', message },
     })
     setChangesOpen(false)
     toast.success(t('post.changesToast'))
@@ -140,6 +171,28 @@ export function PostDetailsDrawer({
       toast.success(t('post.captionCopied'))
     } catch {
       toast.error(t('common.errorTitle'))
+    }
+  }
+
+  const handleMediaUpload = async (files: File[]) => {
+    const file = files[0]
+    if (!file) return
+    setUploadingMedia(true)
+    try {
+      const result = await uploadFile(file, { stage: 'review' })
+      await update.mutateAsync({
+        id: post.id,
+        patch: {
+          contentUrl: result.url,
+          contentFileName: result.fileName,
+          driveFileId: result.fileId,
+        },
+      })
+      toast.success(t('editor.uploadDone'))
+    } catch {
+      toast.error(t('common.errorTitle'))
+    } finally {
+      setUploadingMedia(false)
     }
   }
 
@@ -254,17 +307,39 @@ export function PostDetailsDrawer({
               </div>
 
               <TabsContent value="details" className="mt-0 space-y-5 p-5">
-                <MediaPreview post={post} aspect="auto" />
+                <MediaPreview
+                  post={post}
+                  aspect="auto"
+                  onUpload={readOnly ? undefined : handleMediaUpload}
+                  uploading={uploadingMedia}
+                />
 
                 {post.contentUrl && (
                   <ContentLinkCard url={post.contentUrl} fileName={post.contentFileName} />
                 )}
 
-                <Field label={t('post.description')}>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                    {post.description || t('post.noDescription')}
-                  </p>
-                </Field>
+                {attachedFiles.length > 0 && (
+                  <Field label={t('post.attachedFiles')}>
+                    <ul className="space-y-1.5">
+                      {attachedFiles.map((file) => (
+                        <li key={file.id}>
+                          <a
+                            href={file.driveUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors hover:bg-accent/60"
+                          >
+                            <Paperclip className="size-3.5 shrink-0 text-muted-foreground" />
+                            <span className="min-w-0 flex-1 truncate">{file.name}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {formatBytes(file.size)}
+                            </span>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </Field>
+                )}
 
                 <Field
                   label={t('post.caption')}
@@ -287,6 +362,12 @@ export function PostDetailsDrawer({
                   </p>
                 </Field>
 
+                <Field label={t('post.description')}>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                    {post.description || t('post.noDescription')}
+                  </p>
+                </Field>
+
                 <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                   <Meta label={t('post.topic')}>{post.topic || '—'}</Meta>
                   <Meta label={t('post.contentTypeLabel')}>
@@ -297,6 +378,12 @@ export function PostDetailsDrawer({
                   <Meta label={t('post.statusLabel')}>
                     <StatusBadge status={post.status} />
                   </Meta>
+                  {post.reviewedBy && <Meta label={t('post.completedBy')}>{post.reviewedBy}</Meta>}
+                  {post.completedAt && (
+                    <Meta label={t('post.completedAt')}>
+                      {formatTimestamp(post.completedAt, i18n.language)}
+                    </Meta>
+                  )}
                   {!readOnly && post.assignee && (
                     <Meta label={t('post.assignee')}>
                       <span className="inline-flex items-center gap-1.5">
@@ -368,11 +455,11 @@ export function PostDetailsDrawer({
               <div className="flex gap-2">
                 <Button
                   className="flex-1"
-                  onClick={approve}
-                  disabled={addFeedback.isPending || post.status === 'approved'}
+                  onClick={complete}
+                  disabled={addFeedback.isPending || completing || isComplete}
                 >
                   <CheckCircle2 />
-                  {post.status === 'approved' ? t('status.approved') : t('post.approve')}
+                  {isComplete ? t('post.completed') : t('post.markComplete')}
                 </Button>
                 <Button
                   variant="outline"

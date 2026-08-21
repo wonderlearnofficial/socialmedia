@@ -23,13 +23,14 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useCreatePost, useUpdatePost } from '@/hooks/usePosts'
+import { useSession } from '@/hooks/useSession'
 import { useTeamMembers } from '@/hooks/useTeamMembers'
-import { CONTENT_TYPE_META, STATUS_META, WORKSPACE_META } from '@/lib/constants'
-import { cn } from '@/lib/utils'
+import { CONTENT_TYPE_META, WORKSPACE_META } from '@/lib/constants'
 import { useAppSelector } from '@/store/hooks'
-import { CONTENT_TYPES, POST_STATUSES, type Post, type SocialPlatform } from '@/types'
+import { CONTENT_TYPES, type Post, type SocialPlatform } from '@/types'
 import { PlatformSelector } from './PlatformSelector'
 import { postSchema, type PostFormValues } from './postSchema'
+import { UploadField } from './UploadField'
 
 interface PostEditorProps {
   open: boolean
@@ -52,11 +53,14 @@ const emptyValues = (
   time,
   platforms: defaultPlatforms,
   contentType: 'image',
-  status: 'draft',
+  // Not a form field: the workflow decides status, and a new post is always
+  // waiting for review.
+  status: 'review',
   assignee: '',
   contentUrl: '',
   contentFileName: '',
   mediaPreview: '',
+  driveFileId: '',
 })
 
 export function PostEditor({ open, post, presetDate, presetTime, onClose }: PostEditorProps) {
@@ -67,12 +71,14 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
   const activeWorkspace = useAppSelector((s) => s.settings.activeWorkspace)
   const defaultPlatforms = WORKSPACE_META[activeWorkspace].defaultPlatforms
   const { data: team = [] } = useTeamMembers(activeWorkspace)
+  const { displayName } = useSession()
 
   const {
     register,
     handleSubmit,
     control,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
@@ -97,6 +103,8 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
         contentUrl: post.contentUrl ?? '',
         contentFileName: post.contentFileName ?? '',
         mediaPreview: post.mediaPreview ?? '',
+        driveFileId: post.driveFileId ?? '',
+        driveStage: post.driveStage,
       })
     } else {
       reset(
@@ -118,6 +126,7 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
       contentUrl: values.contentUrl || undefined,
       contentFileName: values.contentFileName || undefined,
       mediaPreview: values.mediaPreview || undefined,
+      driveFileId: values.driveFileId || undefined,
     }
 
     try {
@@ -125,7 +134,7 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
         await update.mutateAsync({ id: post.id, patch: payload })
         toast.success(t('post.saved'))
       } else {
-        await create.mutateAsync(payload)
+        await create.mutateAsync({ ...payload, createdBy: displayName })
         toast.success(t('post.created'))
       }
       onClose()
@@ -141,7 +150,7 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-2xl gap-0 overflow-hidden p-0">
+      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b p-5 pe-14">
           <DialogTitle>{isEdit ? t('editor.editTitle') : t('editor.createTitle')}</DialogTitle>
           <DialogDescription className="text-xs">
@@ -160,21 +169,21 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
               />
             </FormRow>
 
-            <FormRow label={t('editor.descriptionLabel')} htmlFor="post-description">
-              <Textarea
-                id="post-description"
-                {...register('description')}
-                placeholder={t('editor.descriptionPlaceholder')}
-                rows={3}
-              />
-            </FormRow>
-
             <FormRow label={t('editor.captionLabel')} htmlFor="post-caption">
               <Textarea
                 id="post-caption"
                 {...register('caption')}
                 placeholder={t('editor.captionPlaceholder')}
                 rows={4}
+              />
+            </FormRow>
+
+            <FormRow label={t('editor.descriptionLabel')} htmlFor="post-description">
+              <Textarea
+                id="post-description"
+                {...register('description')}
+                placeholder={t('editor.descriptionPlaceholder')}
+                rows={3}
               />
             </FormRow>
 
@@ -197,7 +206,7 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
               </FormRow>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <FormRow label={t('editor.contentTypeLabel')}>
                 <Controller
                   control={control}
@@ -225,34 +234,6 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
                 />
               </FormRow>
 
-              <FormRow label={t('editor.statusLabel')}>
-                <Controller
-                  control={control}
-                  name="status"
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {POST_STATUSES.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            <span className="flex items-center gap-2">
-                              <span
-                                className={cn('size-1.5 rounded-full', STATUS_META[status].dot)}
-                              />
-                              {t(STATUS_META[status].labelKey)}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </FormRow>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
               <FormRow label={t('editor.topicLabel')} htmlFor="post-topic">
                 <Input
                   id="post-topic"
@@ -300,6 +281,17 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
                 {...register('contentUrl')}
                 placeholder={t('editor.contentUrlPlaceholder')}
                 inputMode="url"
+              />
+              <UploadField
+                disabled={isSubmitting}
+                onUploaded={({ contentUrl, contentFileName, driveFileId }) => {
+                  setValue('contentUrl', contentUrl, { shouldValidate: true })
+                  setValue('contentFileName', contentFileName)
+                  // A freshly uploaded image sits in Review, even if this post
+                  // had already been completed once.
+                  setValue('driveFileId', driveFileId ?? '')
+                  setValue('driveStage', 'review')
+                }}
               />
             </FormRow>
 

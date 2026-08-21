@@ -4,8 +4,7 @@ import { Loader2 } from 'lucide-react'
 import { BrandLockup } from '@/components/shared/Brand'
 import { Button } from '@/components/ui/button'
 import { PinInput } from '@/features/auth/PinInput'
-import { ADMIN_EMAIL, USER_EMAIL, pinToPassword } from '@/lib/constants'
-import { supabase } from '@/services/supabaseClient'
+import { signInWithPin } from '@/lib/signIn'
 
 /**
  * The manager dashboard requires a 5-digit PIN; the public review page
@@ -24,11 +23,8 @@ export function LoginPage() {
     setError(null)
     setPending(true)
     try {
-      const password = pinToPassword(value)
-      const admin = await supabase.auth.signInWithPassword({ email: ADMIN_EMAIL, password })
-      if (!admin.error) return
-      const user = await supabase.auth.signInWithPassword({ email: USER_EMAIL, password })
-      if (user.error) {
+      const ok = await signInWithPin(value)
+      if (!ok) {
         setError(t('login.invalid'))
         setPin('')
       }

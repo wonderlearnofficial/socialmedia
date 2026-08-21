@@ -46,7 +46,7 @@ export function AppShell() {
         >
           <div className="flex h-14 items-center border-b px-4">
             <SheetTitle asChild>
-              <BrandLockup subtitle={t('app.tagline')} size="sm" />
+              <BrandLockup size="sm" />
             </SheetTitle>
           </div>
           <div className="border-b p-3">

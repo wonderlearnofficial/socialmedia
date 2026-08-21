@@ -1,10 +1,12 @@
-import type { ContentType, PostStatus, SocialPlatform, WorkspaceId } from '@/types'
+import type { ContentType, GoogleFileKind, PostStatus, SocialPlatform, WorkspaceId } from '@/types'
 import {
   CirclePlay,
   Clapperboard,
   FileText,
   Image,
   Layers,
+  Presentation,
+  Table,
   Video,
   type LucideIcon,
 } from 'lucide-react'
@@ -52,38 +54,26 @@ export const STATUS_META: Record<
   PostStatus,
   { labelKey: string; dot: string; text: string; chart: string }
 > = {
-  draft: {
-    labelKey: 'status.draft',
-    chart: 'oklch(0.72 0.02 286)',
-    dot: 'bg-zinc-400',
-    text: 'text-zinc-500 dark:text-zinc-400',
-  },
-  in_review: {
-    labelKey: 'status.in_review',
+  review: {
+    labelKey: 'status.review',
     chart: 'oklch(0.78 0.15 78)',
     dot: 'bg-amber-500 dark:bg-amber-400',
     text: 'text-amber-600 dark:text-amber-400',
   },
-  changes_requested: {
-    labelKey: 'status.changes_requested',
+  changes_required: {
+    labelKey: 'status.changes_required',
     chart: 'oklch(0.68 0.19 18)',
     dot: 'bg-rose-500 dark:bg-rose-400',
     text: 'text-rose-600 dark:text-rose-400',
   },
-  approved: {
-    labelKey: 'status.approved',
+  waiting_to_post: {
+    labelKey: 'status.waiting_to_post',
     chart: 'oklch(0.75 0.16 158)',
     dot: 'bg-emerald-500 dark:bg-emerald-400',
     text: 'text-emerald-600 dark:text-emerald-400',
   },
-  scheduled: {
-    labelKey: 'status.scheduled',
-    chart: 'oklch(0.74 0.13 232)',
-    dot: 'bg-sky-500 dark:bg-sky-400',
-    text: 'text-sky-600 dark:text-sky-400',
-  },
-  published: {
-    labelKey: 'status.published',
+  posted: {
+    labelKey: 'status.posted',
     chart: 'oklch(0.66 0.17 292)',
     dot: 'bg-violet-500 dark:bg-violet-400',
     text: 'text-violet-600 dark:text-violet-400',
@@ -97,6 +87,27 @@ export const CONTENT_TYPE_META: Record<ContentType, { labelKey: string; icon: Lu
   reel: { labelKey: 'contentType.reel', icon: Clapperboard },
   story: { labelKey: 'contentType.story', icon: CirclePlay },
   text: { labelKey: 'contentType.text', icon: FileText },
+}
+
+export const GOOGLE_FILE_META: Record<
+  GoogleFileKind,
+  { labelKey: string; mimeType: string; icon: LucideIcon }
+> = {
+  doc: {
+    labelKey: 'files.googleDoc',
+    mimeType: 'application/vnd.google-apps.document',
+    icon: FileText,
+  },
+  slides: {
+    labelKey: 'files.googleSlides',
+    mimeType: 'application/vnd.google-apps.presentation',
+    icon: Presentation,
+  },
+  sheets: {
+    labelKey: 'files.googleSheets',
+    mimeType: 'application/vnd.google-apps.spreadsheet',
+    icon: Table,
+  },
 }
 
 export const WORKSPACE_META: Record<

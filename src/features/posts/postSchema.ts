@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CONTENT_TYPES, POST_STATUSES, SOCIAL_PLATFORMS } from '@/types'
+import { CONTENT_TYPES, DRIVE_STAGES, POST_STATUSES, SOCIAL_PLATFORMS } from '@/types'
 
 const optionalUrl = z
   .string()
@@ -21,6 +21,10 @@ export const postSchema = z.object({
   contentUrl: optionalUrl,
   contentFileName: z.string().trim().optional(),
   mediaPreview: optionalUrl,
+  // Not editable by hand — set by UploadField so the post knows which Drive
+  // file to move when it's completed.
+  driveFileId: z.string().trim().optional(),
+  driveStage: z.enum(DRIVE_STAGES).optional(),
 })
 
 export type PostFormValues = z.input<typeof postSchema>

@@ -12,5 +12,8 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
+    // Override .env.local's dev-auto-login for e2e runs — these tests need
+    // the real login gate to actually show up, regardless of local dev settings.
+    env: { VITE_DEV_LOGIN_PIN: '' },
   },
 })

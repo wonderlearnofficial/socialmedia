@@ -16,7 +16,7 @@ export function PlatformSelector({ value, onChange, className }: PlatformSelecto
     onChange(value.includes(platform) ? value.filter((p) => p !== platform) : [...value, platform])
 
   return (
-    <div className={cn('grid grid-cols-2 gap-2 sm:grid-cols-3', className)}>
+    <div className={cn('grid grid-cols-3 gap-2 sm:grid-cols-6', className)}>
       {SOCIAL_PLATFORMS.map((platform) => {
         const selected = value.includes(platform)
         return (

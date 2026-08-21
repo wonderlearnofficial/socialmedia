@@ -1,14 +1,15 @@
 import { useTranslation } from 'react-i18next'
 import { PlatformIconGroup } from '@/components/shared/PlatformBadge'
+import { MediaThumb } from '@/features/media/MediaThumb'
 import { STATUS_META } from '@/lib/constants'
 import { formatTime } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import type { Post } from '@/types'
 
 /**
- * The compact card rendered inside a calendar day: platform, title, time, and
- * status as colour (accent bar + dot). Never the caption — the month grid is for
- * scanning, and every extra line costs a row of the visible plan.
+ * The compact card rendered inside a calendar day: thumbnail, platform, title,
+ * time, and status as colour (accent bar + dot). Never the caption — the month
+ * grid is for scanning, and every extra line costs a row of the visible plan.
  */
 export function CalendarPost({ post, compact = false }: { post: Post; compact?: boolean }) {
   const { t, i18n } = useTranslation()
@@ -20,6 +21,8 @@ export function CalendarPost({ post, compact = false }: { post: Post; compact?: 
       title={`${post.title} · ${t(meta.labelKey)}`}
     >
       <span className={cn('w-0.5 shrink-0 self-stretch rounded-full', meta.dot)} />
+
+      <MediaThumb post={post} className="size-7 rounded-md" />
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1">
