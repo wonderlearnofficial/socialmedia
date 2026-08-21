@@ -1,18 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { useAppSelector } from '@/store/hooks'
-import type { DriveStage, FeedbackInput, PostInput } from '@/types'
+import type { DriveStage, FeedbackInput, PostInput, WorkspaceId } from '@/types'
 
-export function usePostsQuery() {
-  const workspace = useAppSelector((s) => s.settings.activeWorkspace)
+export function usePostsQuery(workspaceOverride?: WorkspaceId) {
+  const activeWorkspace = useAppSelector((s) => s.settings.activeWorkspace)
+  const workspace = workspaceOverride ?? activeWorkspace
   return useQuery({
     queryKey: ['posts', workspace],
     queryFn: () => api.listPosts(workspace),
   })
 }
 
-export function usePostById(id: string | null) {
-  const { data } = usePostsQuery()
+export function usePostById(id: string | null, workspaceOverride?: WorkspaceId) {
+  const { data } = usePostsQuery(workspaceOverride)
   return id ? (data?.find((p) => p.id === id) ?? null) : null
 }
 

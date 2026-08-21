@@ -146,11 +146,27 @@ export const api = {
     return data as ShareLink | null
   },
 
-  listTeamMembers: (workspace: WorkspaceId) =>
-    unwrap<TeamMember[]>(supabase.from('team_members').select().eq('workspace', workspace)),
+  listTeamMembers: () => unwrap<TeamMember[]>(supabase.from('team_members').select().order('name')),
 
   createTeamMember: (input: TeamMemberInput) =>
     unwrap<TeamMember>(supabase.from('team_members').insert(input).select().single()),
+
+  updateTeamMember: (id: string, patch: Partial<TeamMemberInput>) =>
+    unwrap<TeamMember>(supabase.from('team_members').update(patch).eq('id', id).select().single()),
+
+  deleteTeamMember: async (id: string) => {
+    const { error } = await supabase.from('team_members').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+    return { id }
+  },
+
+  /** Posts carry `assignee` as a plain name, not a team_members id, so renaming
+   *  someone has to follow through here or their existing assignments quietly
+   *  stop matching the roster (and the editor's assignee select drops them). */
+  renameAssignee: async (from: string, to: string) => {
+    const { error } = await supabase.from('posts').update({ assignee: to }).eq('assignee', from)
+    if (error) throw new Error(error.message)
+  },
 
   listFolders: (workspace: WorkspaceId) =>
     unwrap<DriveFolder[]>(

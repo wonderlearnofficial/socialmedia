@@ -34,10 +34,15 @@ export function useSession() {
     return () => subscription.subscription.unsubscribe()
   }, [])
 
+  const email = session?.user.email ?? ''
+  const metaName = (session?.user.user_metadata as { name?: string } | undefined)?.name
   const displayName =
-    (session?.user.user_metadata as { name?: string } | undefined)?.name ??
-    session?.user.email ??
-    ''
+    metaName ||
+    (email === 'admin@internal.wonderlearn.app'
+      ? 'Dr. Wael Elmayyah'
+      : email === 'user@internal.wonderlearn.app'
+        ? 'Mazen'
+        : email || '')
 
   return { session, loading, displayName, isAuthenticated: Boolean(session) }
 }

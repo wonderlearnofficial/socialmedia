@@ -18,36 +18,42 @@ import { POST_STATUSES, SOCIAL_PLATFORMS } from '@/types'
 export function FilterBar({ className }: { className?: string }) {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
+  const activeWorkspace = useAppSelector((s) => s.settings.activeWorkspace)
   const { platforms, statuses, search } = useAppSelector((s) => s.filters)
-  const dirty = platforms.length > 0 || statuses.length > 0 || search.length > 0
+  const isDrWael = activeWorkspace === 'dr_wael'
+  const dirty = (!isDrWael && platforms.length > 0) || statuses.length > 0 || search.length > 0
 
   return (
     <div className={cn('flex flex-wrap items-center gap-x-2 gap-y-2', className)}>
-      <div
-        className="flex flex-wrap items-center gap-1.5"
-        role="group"
-        aria-label={t('filters.platforms')}
-      >
-        <FilterChip active={platforms.length === 0} onClick={() => dispatch(setPlatforms([]))}>
-          {t('filters.all')}
-        </FilterChip>
-        {SOCIAL_PLATFORMS.map((platform) => {
-          const active = platforms.includes(platform)
-          return (
-            <FilterChip
-              key={platform}
-              active={active}
-              onClick={() => dispatch(togglePlatform(platform))}
-              aria-pressed={active}
-            >
-              <PlatformIcon platform={platform} brand className="size-3.5" />
-              <span className="hidden sm:inline">{PLATFORM_META[platform].label}</span>
+      {!isDrWael && (
+        <>
+          <div
+            className="flex flex-wrap items-center gap-1.5"
+            role="group"
+            aria-label={t('filters.platforms')}
+          >
+            <FilterChip active={platforms.length === 0} onClick={() => dispatch(setPlatforms([]))}>
+              {t('filters.all')}
             </FilterChip>
-          )
-        })}
-      </div>
+            {SOCIAL_PLATFORMS.map((platform) => {
+              const active = platforms.includes(platform)
+              return (
+                <FilterChip
+                  key={platform}
+                  active={active}
+                  onClick={() => dispatch(togglePlatform(platform))}
+                  aria-pressed={active}
+                >
+                  <PlatformIcon platform={platform} brand className="size-3.5" />
+                  <span className="hidden sm:inline">{PLATFORM_META[platform].label}</span>
+                </FilterChip>
+              )
+            })}
+          </div>
 
-      <span className="hidden h-5 w-px bg-border lg:block" />
+          <span className="hidden h-5 w-px bg-border lg:block" />
+        </>
+      )}
 
       <div
         className="flex flex-wrap items-center gap-1.5"

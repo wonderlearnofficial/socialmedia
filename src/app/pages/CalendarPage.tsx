@@ -16,6 +16,7 @@ import { usePrefersReducedMotion } from '@/hooks/useReducedMotion'
 import { formatDateShort, formatMonthTitle, toMonthKey } from '@/lib/dates'
 import { postsForMonth } from '@/lib/filtering'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { setActiveWorkspace } from '@/store/slices/settingsSlice'
 import {
   closeDay,
   closeEditor,
@@ -27,20 +28,35 @@ import {
   setShareOpen,
   setView,
 } from '@/store/slices/viewSlice'
+import type { WorkspaceId } from '@/types'
 
-export function CalendarPage() {
+interface CalendarPageProps {
+  workspace?: WorkspaceId
+}
+
+export function CalendarPage({ workspace = 'wonderlearn' }: CalendarPageProps) {
   const { t, i18n } = useTranslation()
   const dispatch = useAppDispatch()
   const reduceMotion = usePrefersReducedMotion()
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const { posts, data: allPosts, isLoading, isError, refetch } = useVisiblePosts()
+  useEffect(() => {
+    dispatch(setActiveWorkspace(workspace))
+  }, [workspace, dispatch])
+
+  const { posts, data: allPosts, isLoading, isError, refetch } = useVisiblePosts(workspace)
   const { view, dateISO, selectedDay, activePostId, editor, shareOpen } = useAppSelector(
     (s) => s.view,
   )
   const filters = useAppSelector((s) => s.filters)
   const date = new Date(dateISO)
   const monthKey = toMonthKey(date)
+
+  const isDrWael = workspace === 'dr_wael'
+  const title = isDrWael ? t('nav.drWael') : t('nav.socialMedia')
+  const subtitle = isDrWael
+    ? t('calendar.drWaelSubtitle', { month: formatMonthTitle(date, i18n.language) })
+    : t('calendar.socialMediaSubtitle', { month: formatMonthTitle(date, i18n.language) })
 
   // A shared post link (?post=<id>) opens straight into that post.
   const [searchParams, setSearchParams] = useSearchParams()
@@ -52,8 +68,8 @@ export function CalendarPage() {
     setSearchParams(searchParams, { replace: true })
   }, [linkedPostId, dispatch, searchParams, setSearchParams])
 
-  const activePost = usePostById(activePostId)
-  const editingPost = usePostById(editor.postId)
+  const activePost = usePostById(activePostId, workspace)
+  const editingPost = usePostById(editor.postId, workspace)
   const updatePost = useUpdatePost()
 
   const monthPosts = postsForMonth(posts, monthKey)
@@ -99,10 +115,7 @@ export function CalendarPage() {
   return (
     <div ref={containerRef} className="flex h-full flex-col gap-4 p-4 sm:p-5 lg:p-6">
       <div data-animate="header">
-        <PageHeader
-          title={t('calendar.title')}
-          subtitle={t('calendar.subtitle', { month: formatMonthTitle(date, i18n.language) })}
-        />
+        <PageHeader title={title} subtitle={subtitle} />
       </div>
 
       <div data-animate="summary" className="shrink-0">

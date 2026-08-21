@@ -2,13 +2,12 @@ import { useTranslation } from 'react-i18next'
 import { NavLink } from 'react-router-dom'
 import { BarChart3, CalendarDays, FolderOpen, LayoutList, Settings, Users } from 'lucide-react'
 import { BrandLockup } from '@/components/shared/Brand'
-import { WORKSPACE_META } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import { useAppSelector } from '@/store/hooks'
-import { WorkspaceSwitcher } from './WorkspaceSwitcher'
+import { useSession } from '@/hooks/useSession'
 
 const NAV = [
-  { to: '/', key: 'nav.calendar', icon: CalendarDays, end: true },
+  { to: '/', key: 'nav.socialMedia', icon: CalendarDays, end: true },
+  { to: '/dr-wael', key: 'nav.drWael', icon: CalendarDays, end: true },
   { to: '/posts', key: 'nav.posts', icon: LayoutList },
   { to: '/analytics', key: 'nav.analytics', icon: BarChart3 },
   { to: '/team', key: 'nav.team', icon: Users },
@@ -48,20 +47,19 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
 export function Sidebar() {
   const { t } = useTranslation()
-  const activeWorkspace = useAppSelector((s) => s.settings.activeWorkspace)
+  const { displayName } = useSession()
 
   return (
     <aside className="hidden w-56 shrink-0 flex-col border-e lg:flex">
       <div className="flex h-16 items-center border-b px-4">
         <BrandLockup fluid />
       </div>
-      <div className="border-b p-3">
-        <WorkspaceSwitcher />
-      </div>
       <SidebarNav />
       <div className="mt-auto border-t p-3">
-        <p className="text-[11px] font-medium">{WORKSPACE_META[activeWorkspace].label}</p>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">{t('common.manager')}</p>
+        <p className="truncate text-xs font-semibold text-foreground">
+          {displayName || t('common.manager')}
+        </p>
+        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{t('common.manager')}</p>
       </div>
     </aside>
   )

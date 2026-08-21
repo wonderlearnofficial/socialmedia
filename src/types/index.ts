@@ -102,7 +102,7 @@ export interface TeamMember {
   name: string
   role: string
   email: string
-  focus: SocialPlatform[]
+  focus?: SocialPlatform[]
 }
 
 export type TeamMemberInput = Omit<TeamMember, 'id'>

@@ -13,7 +13,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -21,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FormRow } from '@/components/shared/FormRow'
 import { Textarea } from '@/components/ui/textarea'
 import { useCreatePost, useUpdatePost } from '@/hooks/usePosts'
 import { useSession } from '@/hooks/useSession'
@@ -70,7 +70,7 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
   const isEdit = Boolean(post)
   const activeWorkspace = useAppSelector((s) => s.settings.activeWorkspace)
   const defaultPlatforms = WORKSPACE_META[activeWorkspace].defaultPlatforms
-  const { data: team = [] } = useTeamMembers(activeWorkspace)
+  const { data: team = [] } = useTeamMembers()
   const { displayName } = useSession()
 
   const {
@@ -192,7 +192,11 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
                 control={control}
                 name="platforms"
                 render={({ field }) => (
-                  <PlatformSelector value={field.value} onChange={field.onChange} />
+                  <PlatformSelector
+                    value={field.value}
+                    onChange={field.onChange}
+                    allowedPlatforms={activeWorkspace === 'dr_wael' ? ['linkedin'] : undefined}
+                  />
                 )}
               />
             </FormRow>
@@ -256,13 +260,11 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">—</SelectItem>
-                        {team
-                          .filter((m) => m.focus.length > 0)
-                          .map((member) => (
-                            <SelectItem key={member.id} value={member.name}>
-                              {member.name}
-                            </SelectItem>
-                          ))}
+                        {team.map((member) => (
+                          <SelectItem key={member.id} value={member.name}>
+                            {member.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   )}
@@ -330,31 +332,5 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
         </form>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function FormRow({
-  label,
-  error,
-  hint,
-  htmlFor,
-  children,
-}: {
-  label: string
-  error?: string
-  hint?: string
-  htmlFor?: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={htmlFor}>{label}</Label>
-      {children}
-      {error ? (
-        <p className="text-[11px] font-medium text-destructive">{error}</p>
-      ) : hint ? (
-        <p className="text-[11px] text-muted-foreground">{hint}</p>
-      ) : null}
-    </div>
   )
 }

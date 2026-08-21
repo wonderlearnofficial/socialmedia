@@ -5,12 +5,13 @@ import { Menu } from 'lucide-react'
 import { BrandLockup } from '@/components/shared/Brand'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { useSession } from '@/hooks/useSession'
 import { Sidebar, SidebarNav } from './Sidebar'
 import { ThemeToggle } from './ThemeToggle'
-import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 
 export function AppShell() {
   const { t } = useTranslation()
+  const { displayName } = useSession()
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -41,7 +42,7 @@ export function AppShell() {
 
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
         <SheetContent
-          className="inset-y-0 start-0 end-auto w-64 border-e border-s-0 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left"
+          className="inset-y-0 start-0 end-auto flex w-64 flex-col border-e border-s-0 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left"
           aria-describedby={undefined}
         >
           <div className="flex h-14 items-center border-b px-4">
@@ -49,10 +50,15 @@ export function AppShell() {
               <BrandLockup size="sm" />
             </SheetTitle>
           </div>
-          <div className="border-b p-3">
-            <WorkspaceSwitcher />
-          </div>
           <SidebarNav onNavigate={() => setMenuOpen(false)} />
+          <div className="mt-auto border-t p-3">
+            <p className="truncate text-xs font-semibold text-foreground">
+              {displayName || t('common.manager')}
+            </p>
+            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+              {t('common.manager')}
+            </p>
+          </div>
         </SheetContent>
       </Sheet>
     </div>

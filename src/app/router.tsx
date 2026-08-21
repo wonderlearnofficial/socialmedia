@@ -36,7 +36,9 @@ export const router = createBrowserRouter(
         </RequireAuth>
       ),
       children: [
-        { index: true, element: <CalendarPage /> },
+        { index: true, element: <CalendarPage workspace="wonderlearn" /> },
+        { path: 'social-media', element: <CalendarPage workspace="wonderlearn" /> },
+        { path: 'dr-wael', element: <CalendarPage workspace="dr_wael" /> },
         { path: 'posts', element: withSuspense(<PostsPage />) },
         { path: 'analytics', element: withSuspense(<AnalyticsPage />) },
         { path: 'team', element: withSuspense(<TeamPage />) },

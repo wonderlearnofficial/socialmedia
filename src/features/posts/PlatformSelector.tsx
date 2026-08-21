@@ -7,30 +7,52 @@ import { SOCIAL_PLATFORMS, type SocialPlatform } from '@/types'
 interface PlatformSelectorProps {
   value: SocialPlatform[]
   onChange: (platforms: SocialPlatform[]) => void
+  allowedPlatforms?: readonly SocialPlatform[]
   className?: string
 }
 
 /** Multi-select platform tiles. Selection state is unmistakable. */
-export function PlatformSelector({ value, onChange, className }: PlatformSelectorProps) {
-  const toggle = (platform: SocialPlatform) =>
+export function PlatformSelector({
+  value,
+  onChange,
+  allowedPlatforms,
+  className,
+}: PlatformSelectorProps) {
+  const platforms =
+    allowedPlatforms && allowedPlatforms.length > 0 ? allowedPlatforms : SOCIAL_PLATFORMS
+  const isSingleLocked = platforms.length === 1
+
+  const toggle = (platform: SocialPlatform) => {
+    if (isSingleLocked) return
     onChange(value.includes(platform) ? value.filter((p) => p !== platform) : [...value, platform])
+  }
 
   return (
-    <div className={cn('grid grid-cols-3 gap-2 sm:grid-cols-6', className)}>
-      {SOCIAL_PLATFORMS.map((platform) => {
-        const selected = value.includes(platform)
+    <div
+      className={cn(
+        'grid gap-2',
+        platforms.length === 1
+          ? 'grid-cols-1 sm:grid-cols-2 max-w-xs'
+          : 'grid-cols-3 sm:grid-cols-6',
+        className,
+      )}
+    >
+      {platforms.map((platform) => {
+        const selected = value.includes(platform) || isSingleLocked
         return (
           <button
             key={platform}
             type="button"
             role="checkbox"
             aria-checked={selected}
+            disabled={isSingleLocked}
             onClick={() => toggle(platform)}
             className={cn(
               'group relative flex items-center gap-2.5 rounded-lg border p-2.5 text-start transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
               selected
                 ? 'border-primary bg-primary/5'
                 : 'hover:border-foreground/20 hover:bg-accent/50',
+              isSingleLocked && 'cursor-default opacity-90',
             )}
           >
             <PlatformIcon

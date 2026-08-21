@@ -68,8 +68,13 @@ export function CreateGoogleFileDialog({
       // A blank document is only useful open — a blocked popup still leaves
       // the file sitting in the grid.
       window.open(created.url, '_blank', 'noopener,noreferrer')
-    } catch {
-      toast.error(t('common.errorTitle'))
+    } catch (error) {
+      // Apps Script reports the real reason in its JSON body (a missing OAuth
+      // scope, a bad parent folder id); a bare generic toast discarded it and
+      // left nothing to debug from.
+      toast.error(t('common.errorTitle'), {
+        description: error instanceof Error ? error.message : undefined,
+      })
     } finally {
       setPending(false)
     }

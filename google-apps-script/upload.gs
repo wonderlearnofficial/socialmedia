@@ -15,10 +15,13 @@
 //   moveToStage   { fileId, stage: "review"|"done" }
 //   trash         { itemType: "file"|"folder", id }   — moves to Drive trash, not permanent
 //
-// createGoogleFile needs DocumentApp / SlidesApp / SpreadsheetApp, which are
-// new OAuth scopes: after pasting this version in, run it once from the editor
-// (or just re-deploy) and accept the extra permissions, or the action fails
-// with an authorization error.
+// createGoogleFile needs the Drive advanced service switched on once, in the
+// editor: Services → + → Drive API → v3 → Add. It asks for no scope beyond the
+// one DriveApp already uses, so no re-authorization is involved — but without
+// it the action returns an error saying exactly this. (An earlier version used
+// DocumentApp/SlidesApp/SpreadsheetApp instead, which did need three extra
+// scopes and silently kept failing until someone re-authorized; don't go back
+// to those without reading the note in handleCreateGoogleFile.)
 //
 // Stage folders: social media images live in two folders under the root, and
 // the app never asks anyone to pick between them. A new post's image uploads
@@ -80,29 +83,48 @@ function handleCreateFolder(data) {
   return response({ success: true, folderId: folder.getId(), name: folder.getName(), url: folder.getUrl() });
 }
 
+const GOOGLE_FILE_MIME = {
+  doc: "application/vnd.google-apps.document",
+  slides: "application/vnd.google-apps.presentation",
+  sheets: "application/vnd.google-apps.spreadsheet",
+};
+
 function handleCreateGoogleFile(data) {
+  const mimeType = GOOGLE_FILE_MIME[data.kind];
+  if (!mimeType) return response({ success: false, error: 'Unknown kind: ' + data.kind });
+
+  // Deliberately the advanced Drive service and not DocumentApp/SlidesApp/
+  // SpreadsheetApp: those need three extra OAuth scopes, and Apps Script
+  // decides the scope set by scanning this source, so merely mentioning them
+  // would demand a re-authorization nobody remembers to do. Drive covers all
+  // three kinds under the scope DriveApp already uses, and creates the file
+  // in the right folder directly instead of in My Drive root then moving it.
+  if (typeof Drive === 'undefined' || !Drive.Files) {
+    return response({
+      success: false,
+      error: 'The Drive advanced service is not enabled — in the Apps Script editor, ' +
+        'Services → + → Drive API → v3 → Add, then redeploy a new version.',
+    });
+  }
+
+  const parentId = data.parentFolderId || FOLDER_ID;
   const name = data.name || 'Untitled';
-  var id;
-  if (data.kind === 'doc') id = DocumentApp.create(name).getId();
-  else if (data.kind === 'slides') id = SlidesApp.create(name).getId();
-  else if (data.kind === 'sheets') id = SpreadsheetApp.create(name).getId();
-  else return response({ success: false, error: 'Unknown kind: ' + data.kind });
+  // v3 (`create`) is what the editor adds today; `insert` is the v2 spelling,
+  // kept so an older enabled version of the service still works.
+  const created = Drive.Files.create
+    ? Drive.Files.create({ name: name, mimeType: mimeType, parents: [parentId] })
+    : Drive.Files.insert({ title: name, mimeType: mimeType, parents: [{ id: parentId }] });
 
-  // These APIs always create in the script owner's My Drive root, so the new
-  // file has to be moved into the folder the user is actually looking at.
-  const parent = data.parentFolderId
-    ? DriveApp.getFolderById(data.parentFolderId)
-    : DriveApp.getFolderById(FOLDER_ID);
-  const file = DriveApp.getFileById(id);
-  file.moveTo(parent);
-
+  // Read it back through DriveApp so the url/name/mimeType in the response are
+  // exactly what every other action here reports.
+  const file = DriveApp.getFileById(created.id);
   return response({
     success: true,
     fileId: file.getId(),
     fileName: file.getName(),
     url: file.getUrl(),
     mimeType: file.getMimeType(),
-    folderId: parent.getId(),
+    folderId: parentId,
   });
 }
 
