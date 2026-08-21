@@ -48,16 +48,14 @@ export function Sidebar() {
   const workspaceName = useAppSelector((s) => s.settings.workspaceName)
 
   return (
-    <aside className="hidden w-56 shrink-0 flex-col border-e bg-card/40 lg:flex">
+    <aside className="hidden w-56 shrink-0 flex-col border-e lg:flex">
       <div className="flex h-14 items-center border-b px-4">
         <BrandLockup subtitle={t('app.tagline')} size="sm" />
       </div>
       <SidebarNav />
-      <div className="mt-auto p-3">
-        <div className="rounded-lg border bg-muted/30 p-3">
-          <p className="text-[11px] font-medium">{workspaceName}</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">{t('common.manager')}</p>
-        </div>
+      <div className="mt-auto border-t p-3">
+        <p className="text-[11px] font-medium">{workspaceName}</p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">{t('common.manager')}</p>
       </div>
     </aside>
   )

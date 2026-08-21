@@ -5,7 +5,7 @@ import type { PostStatus } from '@/types'
 
 interface StatusBadgeProps {
   status: PostStatus
-  /** `dot` is the compact calendar form; `chip` is the labelled pill. */
+  /** `dot` is bare (calendar accent); `chip`/`inline` are dot + label text — no pill chrome. */
   variant?: 'chip' | 'dot' | 'inline'
   className?: string
 }
@@ -24,30 +24,15 @@ export function StatusBadge({ status, variant = 'chip', className }: StatusBadge
     )
   }
 
-  if (variant === 'inline') {
-    return (
-      <span
-        className={cn(
-          'inline-flex items-center gap-1.5 text-[11px] font-medium',
-          meta.text,
-          className,
-        )}
-      >
-        <span className={cn('size-1.5 rounded-full', meta.dot)} />
-        {label}
-      </span>
-    )
-  }
-
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap',
-        meta.chip,
+        'inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium',
+        meta.text,
         className,
       )}
     >
-      <span className={cn('size-1.5 rounded-full', meta.dot)} />
+      <span className={cn('size-1.5 shrink-0 rounded-full', meta.dot)} />
       {label}
     </span>
   )

@@ -39,11 +39,21 @@ export function PostRow({ post, onClick, showDate = false, className }: PostRowP
           </span>
         </div>
         <p className="truncate text-sm font-medium leading-tight">{post.title}</p>
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <StatusBadge status={post.status} />
+          <span className="text-muted-foreground/50" aria-hidden="true">
+            ·
+          </span>
           <ContentTypeBadge type={post.contentType} />
           {post.topic && (
-            <span className="hidden text-[11px] text-muted-foreground sm:inline">{post.topic}</span>
+            <>
+              <span className="hidden text-muted-foreground/50 sm:inline" aria-hidden="true">
+                ·
+              </span>
+              <span className="hidden text-[11px] text-muted-foreground sm:inline">
+                {post.topic}
+              </span>
+            </>
           )}
         </div>
       </div>

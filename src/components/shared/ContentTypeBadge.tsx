@@ -18,7 +18,7 @@ export function ContentTypeBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground',
+        'inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground',
         className,
       )}
     >

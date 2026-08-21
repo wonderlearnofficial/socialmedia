@@ -50,7 +50,7 @@ export function DayDetailsModal({
 
             <DialogPrimitive.Content asChild forceMount aria-describedby={undefined}>
               <motion.div
-                className="fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl focus:outline-none"
+                className="fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-2xl border bg-card shadow-lg focus:outline-none"
                 style={{ x: '-50%', y: '-50%' }}
                 initial={reduceMotion ? false : { opacity: 0, scale: 0.96, y: '-48%' }}
                 animate={{ opacity: 1, scale: 1, y: '-50%' }}

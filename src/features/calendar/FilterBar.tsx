@@ -40,7 +40,7 @@ export function FilterBar({ className }: { className?: string }) {
               onClick={() => dispatch(togglePlatform(platform))}
               aria-pressed={active}
             >
-              <PlatformIcon platform={platform} brand={!active} className="size-3.5" />
+              <PlatformIcon platform={platform} brand className="size-3.5" />
               <span className="hidden sm:inline">{PLATFORM_META[platform].label}</span>
             </FilterChip>
           )
@@ -97,10 +97,10 @@ function FilterChip({
     <button
       type="button"
       className={cn(
-        'inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+        'inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
         active
-          ? 'border-primary bg-primary text-primary-foreground'
-          : 'bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground',
+          ? 'font-semibold text-foreground'
+          : 'font-medium text-muted-foreground hover:text-foreground',
         className,
       )}
       {...props}

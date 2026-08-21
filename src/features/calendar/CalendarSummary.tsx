@@ -8,7 +8,9 @@ import { POST_STATUSES, type Post } from '@/types'
 
 /**
  * The small summary strip above the calendar. Each number is a filter —
- * clicking narrows the calendar to that status.
+ * clicking narrows the calendar to that status. Kept as plain text, not
+ * bordered stat tiles, so it stays a caption to the calendar rather than
+ * a dashboard fighting it for attention.
  */
 export function CalendarSummary({ posts, className }: { posts: Post[]; className?: string }) {
   const { t } = useTranslation()
@@ -18,19 +20,19 @@ export function CalendarSummary({ posts, className }: { posts: Post[]; className
   const visible = POST_STATUSES.filter((s) => counts[s] > 0)
 
   return (
-    <div className={cn('flex flex-wrap items-stretch gap-2', className)}>
+    <div className={cn('flex flex-wrap items-center gap-x-5 gap-y-2', className)}>
       <button
         type="button"
         onClick={() => dispatch(setStatuses([]))}
         className={cn(
-          'flex min-w-24 flex-col rounded-lg border px-3 py-2 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
-          active.length === 0 ? 'border-primary/50 bg-primary/5' : 'hover:bg-accent',
+          'flex items-baseline gap-1.5 rounded-sm text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+          active.length > 0 && 'text-muted-foreground hover:text-foreground',
         )}
       >
         <span className="text-lg font-semibold leading-none tracking-tight tabular-nums">
           {posts.length}
         </span>
-        <span className="mt-1 text-[11px] text-muted-foreground">{t('summary.posts')}</span>
+        <span className="text-xs text-muted-foreground">{t('summary.posts')}</span>
       </button>
 
       {visible.map((status) => {
@@ -45,14 +47,14 @@ export function CalendarSummary({ posts, className }: { posts: Post[]; className
             }
             aria-pressed={isActive}
             className={cn(
-              'flex min-w-24 flex-col rounded-lg border px-3 py-2 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
-              isActive ? 'border-primary/50 bg-primary/5' : 'hover:bg-accent',
+              'flex items-baseline gap-1.5 rounded-sm text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+              !isActive && 'text-muted-foreground hover:text-foreground',
             )}
           >
             <span className="text-lg font-semibold leading-none tracking-tight tabular-nums">
               {counts[status]}
             </span>
-            <span className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className={cn('size-1.5 rounded-full', meta.dot)} />
               {t(meta.labelKey)}
             </span>

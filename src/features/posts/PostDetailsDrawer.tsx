@@ -158,13 +158,11 @@ export function PostDetailsDrawer({
         <SheetContent className="gap-0 p-0" aria-describedby={undefined}>
           {/* Header */}
           <header className="shrink-0 border-b p-5 pe-14">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {post.platforms.map((p) => (
-                <span
-                  key={p}
-                  className="inline-flex items-center gap-1.5 rounded-full border bg-muted/60 px-2 py-0.5 text-[11px] font-medium"
-                >
-                  <PlatformIcon platform={p} brand className="size-3" />
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-medium text-muted-foreground">
+              {post.platforms.map((p, i) => (
+                <span key={p} className="inline-flex items-center gap-1.5">
+                  {i > 0 && <span aria-hidden="true">·</span>}
+                  <PlatformIcon platform={p} brand className="size-3.5" />
                   {PLATFORM_META[p].label}
                 </span>
               ))}

@@ -45,48 +45,42 @@ export const PLATFORM_META: Record<
 
 export const STATUS_META: Record<
   PostStatus,
-  { labelKey: string; dot: string; chip: string; text: string; chart: string }
+  { labelKey: string; dot: string; text: string; chart: string }
 > = {
   draft: {
     labelKey: 'status.draft',
     chart: 'oklch(0.72 0.02 286)',
     dot: 'bg-zinc-400',
-    chip: 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-300 border-zinc-500/20',
     text: 'text-zinc-500 dark:text-zinc-400',
   },
   in_review: {
     labelKey: 'status.in_review',
     chart: 'oklch(0.78 0.15 78)',
     dot: 'bg-amber-500 dark:bg-amber-400',
-    chip: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25',
     text: 'text-amber-600 dark:text-amber-400',
   },
   changes_requested: {
     labelKey: 'status.changes_requested',
     chart: 'oklch(0.68 0.19 18)',
     dot: 'bg-rose-500 dark:bg-rose-400',
-    chip: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/25',
     text: 'text-rose-600 dark:text-rose-400',
   },
   approved: {
     labelKey: 'status.approved',
     chart: 'oklch(0.75 0.16 158)',
     dot: 'bg-emerald-500 dark:bg-emerald-400',
-    chip: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25',
     text: 'text-emerald-600 dark:text-emerald-400',
   },
   scheduled: {
     labelKey: 'status.scheduled',
     chart: 'oklch(0.74 0.13 232)',
     dot: 'bg-sky-500 dark:bg-sky-400',
-    chip: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/25',
     text: 'text-sky-600 dark:text-sky-400',
   },
   published: {
     labelKey: 'status.published',
     chart: 'oklch(0.66 0.17 292)',
     dot: 'bg-violet-500 dark:bg-violet-400',
-    chip: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/25',
     text: 'text-violet-600 dark:text-violet-400',
   },
 }

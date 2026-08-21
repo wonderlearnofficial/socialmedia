@@ -16,11 +16,7 @@ export function CalendarPost({ post, compact = false }: { post: Post; compact?: 
 
   return (
     <div
-      className={cn(
-        'group/post flex w-full gap-1.5 overflow-hidden rounded-md border border-transparent bg-muted/45 py-1 pe-1.5 ps-1 text-start transition-colors hover:border-border hover:bg-accent',
-        post.status === 'changes_requested' && 'bg-rose-500/8 hover:bg-rose-500/12',
-        post.status === 'approved' && 'bg-emerald-500/8 hover:bg-emerald-500/12',
-      )}
+      className="group/post flex w-full gap-1.5 overflow-hidden rounded-md py-1 pe-1.5 ps-1 text-start transition-colors hover:bg-accent/50"
       title={`${post.title} · ${t(meta.labelKey)}`}
     >
       <span className={cn('w-0.5 shrink-0 self-stretch rounded-full', meta.dot)} />

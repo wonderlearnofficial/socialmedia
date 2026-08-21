@@ -115,7 +115,7 @@ export function CalendarHeader({
                 className={cn(
                   'inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
                   view === v
-                    ? 'bg-card text-foreground shadow-sm'
+                    ? 'bg-card text-foreground'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >

@@ -29,7 +29,7 @@ export function PlatformSelector({ value, onChange, className }: PlatformSelecto
             className={cn(
               'group relative flex items-center gap-2.5 rounded-lg border p-2.5 text-start transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
               selected
-                ? 'border-primary bg-primary/5 shadow-xs'
+                ? 'border-primary bg-primary/5'
                 : 'hover:border-foreground/20 hover:bg-accent/50',
             )}
           >
