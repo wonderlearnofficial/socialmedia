@@ -1,11 +1,8 @@
 import { useTranslation } from 'react-i18next'
-import { LogOut, Monitor, Moon, Sun } from 'lucide-react'
+import { Monitor, Moon, Sun } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useSession } from '@/hooks/useSession'
 import { cn } from '@/lib/utils'
-import { supabase } from '@/services/supabaseClient'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setLanguage, setTheme, type ThemeSetting } from '@/store/slices/settingsSlice'
 
@@ -19,7 +16,6 @@ export function SettingsPage() {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const { theme, language } = useAppSelector((s) => s.settings)
-  const { displayName } = useSession()
 
   return (
     <div className="h-full overflow-y-auto p-4 sm:p-5 lg:p-6">
@@ -74,18 +70,6 @@ export function SettingsPage() {
                 {lng === 'en' ? 'English' : 'العربية (RTL)'}
               </button>
             ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{displayName}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" size="sm" onClick={() => supabase.auth.signOut()}>
-              <LogOut />
-              {t('login.signOut')}
-            </Button>
           </CardContent>
         </Card>
       </div>
