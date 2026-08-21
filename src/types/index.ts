@@ -1,4 +1,11 @@
-export const SOCIAL_PLATFORMS = ['instagram', 'facebook', 'youtube', 'tiktok', 'x'] as const
+export const SOCIAL_PLATFORMS = [
+  'instagram',
+  'facebook',
+  'youtube',
+  'tiktok',
+  'x',
+  'linkedin',
+] as const
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number]
 
 export const POST_STATUSES = [

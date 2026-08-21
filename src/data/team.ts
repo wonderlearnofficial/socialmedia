@@ -6,7 +6,7 @@ export const TEAM: TeamMember[] = [
     name: 'Sarah Chen',
     role: 'Social Media Manager',
     email: 'sarah@wonderlearn.com',
-    focus: ['instagram', 'facebook', 'x'],
+    focus: ['instagram', 'facebook', 'x', 'linkedin'],
   },
   {
     id: 'tm_02',
