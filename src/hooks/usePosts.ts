@@ -1,8 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/services/api'
-import type { FeedbackInput } from '@/services/mockServer'
 import { useAppSelector } from '@/store/hooks'
-import type { PostInput } from '@/types'
+import type { FeedbackInput, PostInput } from '@/types'
 
 export function usePostsQuery() {
   const workspace = useAppSelector((s) => s.settings.activeWorkspace)

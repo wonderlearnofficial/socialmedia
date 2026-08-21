@@ -1,12 +1,11 @@
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
-import { Monitor, Moon, RotateCcw, Sun } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
+import { LogOut, Monitor, Moon, Sun } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useSession } from '@/hooks/useSession'
 import { cn } from '@/lib/utils'
-import { resetDemoData } from '@/services/mockServer'
+import { supabase } from '@/services/supabaseClient'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setLanguage, setTheme, type ThemeSetting } from '@/store/slices/settingsSlice'
 
@@ -19,8 +18,8 @@ const THEMES: { value: ThemeSetting; icon: typeof Sun; key: string }[] = [
 export function SettingsPage() {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
-  const qc = useQueryClient()
   const { theme, language } = useAppSelector((s) => s.settings)
+  const { displayName } = useSession()
 
   return (
     <div className="h-full overflow-y-auto p-4 sm:p-5 lg:p-6">
@@ -80,21 +79,12 @@ export function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('settings.data')}</CardTitle>
-            <CardDescription>{t('settings.dataBody')}</CardDescription>
+            <CardTitle>{displayName}</CardTitle>
           </CardHeader>
           <CardContent>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                resetDemoData()
-                await qc.invalidateQueries({ queryKey: ['posts'] })
-                toast.success(t('settings.resetDone'))
-              }}
-            >
-              <RotateCcw />
-              {t('settings.reset')}
+            <Button variant="outline" size="sm" onClick={() => supabase.auth.signOut()}>
+              <LogOut />
+              {t('login.signOut')}
             </Button>
           </CardContent>
         </Card>

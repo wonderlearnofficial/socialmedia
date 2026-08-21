@@ -22,8 +22,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { TEAM } from '@/data/team'
 import { useCreatePost, useUpdatePost } from '@/hooks/usePosts'
+import { useTeamMembers } from '@/hooks/useTeamMembers'
 import { CONTENT_TYPE_META, STATUS_META, WORKSPACE_META } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { useAppSelector } from '@/store/hooks'
@@ -66,6 +66,7 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
   const isEdit = Boolean(post)
   const activeWorkspace = useAppSelector((s) => s.settings.activeWorkspace)
   const defaultPlatforms = WORKSPACE_META[activeWorkspace].defaultPlatforms
+  const { data: team = [] } = useTeamMembers(activeWorkspace)
 
   const {
     register,
@@ -274,13 +275,13 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">—</SelectItem>
-                        {TEAM.filter(
-                          (m) => m.workspace === activeWorkspace && m.focus.length > 0,
-                        ).map((member) => (
-                          <SelectItem key={member.id} value={member.name}>
-                            {member.name}
-                          </SelectItem>
-                        ))}
+                        {team
+                          .filter((m) => m.focus.length > 0)
+                          .map((member) => (
+                            <SelectItem key={member.id} value={member.name}>
+                              {member.name}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   )}

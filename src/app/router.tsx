@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { CalendarPage } from './pages/CalendarPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { RequireAuth } from './RequireAuth'
 import { RouteFallback } from './RouteFallback'
 
 // The calendar is the primary destination and ships in the main bundle;
@@ -28,7 +29,11 @@ export const router = createBrowserRouter(
   [
     {
       path: '/',
-      element: <AppShell />,
+      element: (
+        <RequireAuth>
+          <AppShell />
+        </RequireAuth>
+      ),
       children: [
         { index: true, element: <CalendarPage /> },
         { path: 'posts', element: withSuspense(<PostsPage />) },

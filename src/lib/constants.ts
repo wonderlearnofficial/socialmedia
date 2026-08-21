@@ -107,5 +107,7 @@ export const WORKSPACE_META: Record<
   dr_wael: { label: 'Dr. Wael', defaultPlatforms: ['linkedin'] },
 }
 
-export const MANAGER_NAME = 'Sarah Chen'
-export const OWNER_NAME = 'Marwa'
+// Two fixed Supabase Auth accounts back the manager login — never shown in
+// the UI, just the identity a passphrase ("key") signs in as.
+export const ADMIN_EMAIL = 'admin@internal.wonderlearn.app'
+export const USER_EMAIL = 'user@internal.wonderlearn.app'

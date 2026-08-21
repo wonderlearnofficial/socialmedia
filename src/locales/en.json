@@ -185,7 +185,9 @@
     "subtitle": "Everyone working on this calendar",
     "assigned_one": "{{count}} post this month",
     "assigned_other": "{{count}} posts this month",
-    "client": "Client"
+    "client": "Client",
+    "emptyTitle": "No team members yet",
+    "emptyBody": "Add the people working on this workspace's content."
   },
   "settings": {
     "title": "Settings",
@@ -201,6 +203,14 @@
     "dataBody": "Restore the sample August calendar and remove local changes.",
     "reset": "Reset demo data",
     "resetDone": "Demo data restored"
+  },
+  "login": {
+    "subtitle": "Sign in to manage the content calendar",
+    "keyLabel": "Access key",
+    "keyPlaceholder": "Enter your key",
+    "submit": "Sign in",
+    "invalid": "That key doesn't match either account",
+    "signOut": "Sign out"
   },
   "common": {
     "close": "Close",

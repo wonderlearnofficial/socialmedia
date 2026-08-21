@@ -43,7 +43,8 @@ import { FeedbackForm } from '@/features/review/FeedbackForm'
 import { ReviewPanel } from '@/features/review/ReviewPanel'
 import { SocialPreview } from '@/features/posts/SocialPreview'
 import { useAddFeedback, useDeletePost, useDuplicatePost } from '@/hooks/usePosts'
-import { MANAGER_NAME, PLATFORM_META, STATUS_META } from '@/lib/constants'
+import { useSession } from '@/hooks/useSession'
+import { PLATFORM_META, STATUS_META } from '@/lib/constants'
 import { formatDateFull, formatTime } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { POST_STATUSES, type Post, type PostStatus, type SocialPlatform } from '@/types'
@@ -74,6 +75,7 @@ export function PostDetailsDrawer({
   const addFeedback = useAddFeedback()
   const duplicate = useDuplicatePost()
   const remove = useDeletePost()
+  const { displayName } = useSession()
 
   // Reset transient UI whenever a different post is opened.
   useEffect(() => {
@@ -85,7 +87,7 @@ export function PostDetailsDrawer({
   if (!post) return null
 
   const activePreview = previewPlatform ?? post.platforms[0] ?? 'instagram'
-  const author = reviewer?.name ?? MANAGER_NAME
+  const author = reviewer?.name ?? displayName
   const role = reviewer?.role ?? 'manager'
 
   const approve = async () => {

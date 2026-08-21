@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Env files — Supabase keys are public-safe, but keep the convention explicit
+.env
+.env.local
+.env.*.local
+
 # Test output
 playwright-report
 test-results

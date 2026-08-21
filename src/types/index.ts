@@ -25,15 +25,24 @@ export const CONTENT_TYPES = ['image', 'video', 'carousel', 'reel', 'story', 'te
 export type ContentType = (typeof CONTENT_TYPES)[number]
 
 export type FeedbackRole = 'owner' | 'manager' | 'system'
+export type FeedbackKind = 'comment' | 'status_change'
 
 export interface Feedback {
   id: string
   author: string
   role: FeedbackRole
-  kind: 'comment' | 'status_change'
+  kind: FeedbackKind
   message: string
   status?: PostStatus
   createdAt: string
+}
+
+export interface FeedbackInput {
+  author: string
+  role: FeedbackRole
+  kind: FeedbackKind
+  message: string
+  status?: PostStatus
 }
 
 export interface Post {
@@ -77,3 +86,5 @@ export interface TeamMember {
   email: string
   focus: SocialPlatform[]
 }
+
+export type TeamMemberInput = Omit<TeamMember, 'id'>

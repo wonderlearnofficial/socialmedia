@@ -11,9 +11,8 @@ import { CalendarShell } from '@/features/calendar/CalendarShell'
 import { CalendarSummary } from '@/features/calendar/CalendarSummary'
 import { DayDetailsModal } from '@/features/calendar/DayDetailsModal'
 import { PostDetailsDrawer } from '@/features/posts/PostDetailsDrawer'
-import { OWNER_NAME, WORKSPACE_META } from '@/lib/constants'
+import { WORKSPACE_META } from '@/lib/constants'
 import { formatMonthTitle } from '@/lib/dates'
-import { postsForMonth } from '@/lib/filtering'
 import { api } from '@/services/api'
 import type { CalendarViewMode } from '@/store/slices/viewSlice'
 
@@ -42,15 +41,16 @@ export function SharedCalendarPage() {
   })
 
   const workspace = share.data?.workspace
+  const month = share.data?.month
   const {
     data: posts = [],
     isLoading,
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['posts', workspace],
-    queryFn: () => api.listPosts(workspace!),
-    enabled: Boolean(workspace),
+    queryKey: ['posts', workspace, month],
+    queryFn: () => api.listPostsForMonth(workspace!, month!),
+    enabled: Boolean(workspace && month),
   })
   const activePost = posts.find((p) => p.id === activeId) ?? null
 
@@ -86,7 +86,6 @@ export function SharedCalendarPage() {
     )
   }
 
-  const monthPosts = postsForMonth(posts, share.data.month)
   const workspaceLabel = WORKSPACE_META[share.data.workspace].label
 
   return (
@@ -117,7 +116,7 @@ export function SharedCalendarPage() {
           {t('review.clientBanner')}
         </p>
 
-        <CalendarSummary posts={monthPosts} />
+        <CalendarSummary posts={posts} />
 
         <div className="flex min-h-0 flex-1">
           <CalendarShell
@@ -149,7 +148,7 @@ export function SharedCalendarPage() {
         post={activePost}
         open={Boolean(activePost)}
         onClose={() => setActiveId(null)}
-        reviewer={{ name: OWNER_NAME, role: 'owner' }}
+        reviewer={{ name: workspaceLabel, role: 'owner' }}
         readOnly
       />
     </div>
