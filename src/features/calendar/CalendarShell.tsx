@@ -32,7 +32,7 @@ interface CalendarShellProps {
   onViewChange: (view: CalendarViewMode) => void
   onDayClick: (dateKey: string) => void
   onPostClick: (id: string) => void
-  onPostDrop?: (postId: string, dateKey: string, time: string) => void
+  onPostDrop?: (postId: string, dateKey: string, time: string) => Promise<void> | void
   onShare?: () => void
   onAddPost?: (dateKey?: string) => void
   readOnly?: boolean

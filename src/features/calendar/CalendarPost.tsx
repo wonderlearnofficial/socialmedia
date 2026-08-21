@@ -17,14 +17,14 @@ export function CalendarPost({ post, compact = false }: { post: Post; compact?: 
 
   return (
     <div
-      className="group/post flex w-full gap-1.5 overflow-hidden rounded-md py-1 pe-1.5 ps-1 text-start transition-colors hover:bg-accent/50"
+      className="group/post flex w-full select-none cursor-grab active:cursor-grabbing gap-1.5 overflow-hidden rounded-md py-1 pe-1.5 ps-1 text-start transition-colors hover:bg-accent/50"
       title={`${post.title} · ${t(meta.labelKey)}`}
     >
       <span className={cn('w-0.5 shrink-0 self-stretch rounded-full', meta.dot)} />
 
-      <MediaThumb post={post} className="size-7 rounded-md" />
+      <MediaThumb post={post} className="size-7 pointer-events-none select-none rounded-md" />
 
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 pointer-events-none">
         <div className="flex items-center gap-1">
           <PlatformIconGroup platforms={post.platforms} max={3} iconClassName="size-3" />
           <span className="ms-auto flex shrink-0 items-center gap-1">

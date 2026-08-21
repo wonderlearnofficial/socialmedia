@@ -22,178 +22,99 @@ The app has two independent content calendars, switched via a tab in the header:
 | Dr. Wael    | LinkedIn only                                     |
 
 Each has its own posts, team roster, and review links — switching tabs never mixes their
-data. Both start empty; there is no seed/demo content in production.
+data. Both start empty; there is no seed/demo content.
 
 ## Real infrastructure, no server
 
 - **Database & auth**: [Supabase](https://supabase.com) (hosted Postgres + Auth), talked to
-  directly from the browser via `@supabase/supabase-js`. There is no backend of ours —
-  Row Level Security policies in Postgres are what actually keep data safe, not a server.
+  directly from the browser via `@supabase/supabase-js`. There is no custom backend server —
+  Row Level Security policies and custom RPC functions in Postgres keep data safe and enforce permissions.
 - **Hosting**: static build deployed to **GitHub Pages** on every push to `main` (see
-  `.github/workflows/deploy.yml`). No server to operate, ever.
-- **File uploads**: a small Google Apps Script web app (owned outside this repo) receives
-  files from the browser and drops them into a Google Drive folder, returning a shareable
-  link. See `src/services/upload.ts`.
+  `.github/workflows/deploy.yml`).
+- **File & Asset Management**: integration with Google Drive via a Google Apps Script web app endpoint (`google-apps-script/upload.gs`), supporting direct uploads, staging folders, folder management, and native Google Docs / Slides / Sheets creation.
 
 ## Login
 
 The manager dashboard is gated by a **5-digit PIN** (`src/features/auth/PinInput.tsx`).
-Under the hood there are two fixed Supabase Auth accounts — one PIN each — but there is
-**no admin/user distinction**: both accounts can do exactly the same things. The only
-reason there are two is so posts, comments, and status changes get attributed to the
-right real name (e.g. "Dr. Wael Elmayyah" vs. "Mazen") instead of a generic "Manager".
+Under the hood there are two fixed Supabase Auth accounts — one PIN each — with equal permissions.
+This attributes posts, reviews, and comments to the right team member (e.g., "Dr. Wael Elmayyah" vs. "Mazen").
 
-The public review page (`/share/:id`) **never** requires login — that's the whole point
-of it. Anyone with the link can open it, see the calendar, and approve or request
-changes on a post.
+The public review page (`/share/:id`) **never** requires login. Clients and external reviewers can view the calendar and approve or request changes via dedicated RPC calls without needing an account.
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.local.example .env.local   # fill in the Supabase URL/key and upload script URL
+cp .env.local.example .env.local   # fill in Supabase URL/key and upload script URL
 npm run dev                        # http://localhost:5173
 ```
 
-`.env.local` is never committed. Ask whoever owns the Supabase project for the URL and
-publishable (anon) key, and the Google Apps Script exec URL for uploads.
+`.env.local` is never committed. Ask your project owner for the Supabase project credentials and Google Apps Script URL.
 
-Optional local-only convenience: set `VITE_DEV_LOGIN_PIN` in `.env.local` to a real PIN
-and `npm run dev` signs you in automatically — no need to retype the PIN on every reload.
-It has no effect on production builds or on `npm run test:e2e` (which always exercises the
-real login gate).
+Optional local-only convenience: set `VITE_DEV_LOGIN_PIN` in `.env.local` to a valid PIN to sign in automatically during development.
 
-| Script                | What it does                                                       |
-| --------------------- | ------------------------------------------------------------------ |
-| `npm run dev`         | Vite dev server                                                    |
-| `npm run build`       | Typecheck, then production build                                   |
-| `npm run build:pages` | Production build with the `/socialmedia/` base path (what CI runs) |
-| `npm run preview`     | Serve the production build                                         |
-| `npm test`            | Vitest unit + component tests                                      |
-| `npm run test:e2e`    | Playwright end-to-end tests                                        |
-| `npm run lint`        | ESLint                                                             |
-| `npm run format`      | Prettier                                                           |
+### Local Development with SQL / Supabase CLI
 
-## How it works
-
-`src/services/api.ts` is the single seam every hook calls through (`listPosts`,
-`createPost`, `addFeedback`, …) — it talks to Supabase via PostgREST. Postgres columns use
-quoted mixed-case names (`"contentType"`, `"createdAt"`) specifically so no
-snake_case↔camelCase mapping layer is needed on either side.
-
-Workspace scoping happens once, upstream, inside the query layer
-(`src/hooks/usePosts.ts`'s query key is `['posts', workspace]`) rather than as a filter
-applied per-page — every page that reads posts inherits the correct scoping for free.
-
-### Database
-
-Schema lives in `supabase/migrations/` as plain SQL, run manually in the Supabase SQL
-Editor (nothing here runs automatically — there's no CI migration step). Tables:
-`posts`, `feedback`, `shares`, `team_members`. Row Level Security: every table is publicly
-**readable** (required for the no-login review page); every **write** requires a signed-in
-session, except approving/requesting changes, which goes through a narrow
-`add_feedback()` database function so an anonymous client owner can act without being
-able to edit anything else.
-
-### State
-
-- **Redux Toolkit** — local UI state only: filters, calendar view, which modal is open,
-  theme/language settings, which workspace tab is active. Never data that lives in
-  Postgres.
-- **TanStack Query** — server state: posts, feedback, shares, team members.
-
-Keeping them separate means filtering the calendar never refetches, and approving a post
-updates every view at once.
-
-### Architecture
-
-```
-src/
-├── app/             # providers, router, pages, RequireAuth, error boundary, theme sync
-├── components/
-│   ├── ui/          # shadcn-style primitives on Radix
-│   ├── layout/      # app shell, sidebar, workspace switcher, page header
-│   └── shared/      # PlatformIcon, StatusBadge, Brand, EmptyState
-├── features/
-│   ├── calendar/    # grid, day modal, list, mobile agenda, filters, search
-│   ├── posts/       # details drawer, editor, platform selector, social preview, uploads
-│   ├── review/      # review thread, feedback form
-│   ├── sharing/     # share modal
-│   ├── media/       # provider detection, previews, thumbnails
-│   ├── auth/         # PIN input
-│   ├── analytics/   # (charts live in app/pages/AnalyticsPage)
-│   └── team/
-├── store/slices/    # filters, view, settings
-├── services/        # supabaseClient, api, upload, queryClient
-├── hooks/  lib/  types/  locales/
-```
-
-### Platform icons
-
-`<PlatformIcon platform="instagram" />` is the only place platform artwork exists —
-official brand paths, sized with `className`, optionally painted in brand colors with
-`brand`. TikTok and X get a light variant so their black marks stay visible on dark.
-
-### File uploads
-
-The post editor's **Upload files** / **Upload folder** buttons send files straight to a
-Google Apps Script endpoint as base64, which stores them in Drive and returns a link —
-filling in the post's content link automatically. Capped at 20MB per file (Apps Script's
-request-size ceiling). Pasting an existing Drive/Dropbox/OneDrive/Figma/Canva link still
-works exactly as before; uploading is just a shortcut for getting one.
-
-### Dragging
-
-Rescheduling a post is a calendar interaction, so it uses **FullCalendar's own** drag
-system (`@fullcalendar/interaction`) — drop a post on another day and it re-times and
-saves, with a toast confirming the new date.
-
-### Media previews
-
-`src/lib/media.ts` detects the provider from a URL — Google Drive, Dropbox, OneDrive,
-Figma, Canva, or a direct image/video — and derives a thumbnail where one exists (Drive
-file IDs become `drive.google.com/thumbnail?id=…`).
-
-Remote media is always treated as untrusted: any image or video that fails to load
-collapses into a labelled "Preview unavailable" card with the file name and a link to the
-original. A broken asset never breaks the layout.
-
-## Design
-
-Dark by default, with light and system options; the theme is applied by an inline script
-before first paint so there is no flash. English and Arabic with full RTL — the layout uses
-logical properties (`ms-*`, `pe-*`, `start-*`) throughout, so mirroring is automatic.
-
-Animation is deliberate: GSAP for page and month transitions, Framer Motion for the day
-modal and drawer. Everything honours `prefers-reduced-motion`.
-
-The month grid is the hero and is tuned for scanning — each post card carries platform,
-title, time, and status as colour, never the caption.
-
-## Testing
-
-- **Vitest + Testing Library** — filtering, date and media logic; the day modal and
-  `PlatformIcon` as components.
-- **Playwright** — runs against a real dev server talking to the real Supabase project.
-  Three tests need no credentials (login gate present, invalid PIN rejected, public share
-  page never asks for login); the authenticated flow (create a post, confirm it appears,
-  delete it) reads a PIN from `E2E_LOGIN_PIN` and skips if that's unset, rather than
-  hardcoding a real credential into a committed file.
+You can develop either against a cloud Supabase project or locally with Docker using the Supabase CLI:
 
 ```bash
-npm test
-E2E_LOGIN_PIN=xxxxx npm run test:e2e
+# Start local Supabase containers (Postgres, Auth, Storage, Studio)
+npx supabase start
+
+# Apply all migration scripts in sequence
+npx supabase migration up
+
+# Open local Supabase Studio UI
+# http://localhost:54323
 ```
 
-## Deployment
+| Script                | What it does                                                 |
+| --------------------- | ------------------------------------------------------------ |
+| `npm run dev`         | Vite dev server                                              |
+| `npm run build`       | Typecheck, then production build                             |
+| `npm run build:pages` | Production build with `/socialmedia/` base path (used by CI) |
+| `npm run preview`     | Serve the production build                                   |
+| `npm test`            | Vitest unit and component tests                              |
+| `npm run test:e2e`    | Playwright end-to-end tests                                  |
+| `npm run lint`        | ESLint                                                       |
+| `npm run format`      | Prettier                                                     |
 
-Every push to `main` runs lint, typecheck, and unit tests, then builds and deploys to
-GitHub Pages via `.github/workflows/deploy.yml`. Required repo secrets (Settings → Secrets
-and variables → Actions): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
-`VITE_UPLOAD_SCRIPT_URL`.
+## Key Features & Architecture
 
-## Stack
+### 1. Calendar & Drag-and-Drop Rescheduling
+
+- **FullCalendar Integration** (`@fullcalendar/react`, `@fullcalendar/daygrid`, `@fullcalendar/timegrid`):
+  - Month grid view optimized for rapid scanning with status indicators and platform badges.
+  - Week time grid view with precise slot scheduling.
+  - Interactive **drag-and-drop** allows moving posts across days or time slots with instant optimistic updates, visual drop highlights, and automatic error rollbacks.
+
+### 2. Review Workflow & Drive Staging
+
+- Posts progress through four distinct stages: `review` → `changes_required` → `waiting_to_post` → `posted`.
+- Post artwork automatically lands in a dedicated **Review** Drive folder on upload.
+- Approving a post automatically triggers `moveToStage` to transfer the asset to the **Done** folder in Google Drive.
+- Anonymous clients leave feedback and mark approval through the secure `add_feedback` Postgres RPC function.
+
+### 3. File & Cloud Asset Management (`/files`)
+
+- Built-in visual folder browser for project assets.
+- Create nested Drive folders and create native Google Docs, Sheets, or Slides directly from the dashboard.
+- Upload media files up to 20MB with progress and preview indicators.
+
+### 4. Team Roster Management (`/team`)
+
+- Manage team members, roles, email contacts, and social platform specialties per workspace.
+- Seamlessly renames assignees across existing posts upon roster updates.
+
+### 5. Database Schema & Migrations
+
+- Migration files live in `supabase/migrations/`:
+  - `0001_init.sql`: Base tables (`posts`, `feedback`, `shares`, `team_members`) and RLS policies.
+  - `0002_file_management.sql`: Folder and file metadata tables (`folders`, `files`).
+  - `0003_review_workflow.sql`: Review workflow columns, stage tracking, and `add_feedback` RPC function.
+
+## Tech Stack
 
 React 19 · TypeScript · Vite · Tailwind CSS v4 · Radix UI · Redux Toolkit · TanStack Query ·
-Supabase (Postgres + Auth) · React Hook Form + Zod · FullCalendar · Framer Motion · GSAP ·
-Recharts · Sonner · i18next · Vitest · Playwright
+Supabase (Postgres + Auth + RPC) · React Hook Form + Zod · FullCalendar · Framer Motion · GSAP ·
+Recharts · Sonner · i18next (EN/AR + RTL) · Vitest · Playwright

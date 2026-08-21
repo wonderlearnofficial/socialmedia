@@ -39,7 +39,8 @@
     "loadErrorTitle": "تعذّر تحميل التقويم",
     "loadErrorBody": "حدث خطأ أثناء جلب المنشورات.",
     "retry": "إعادة المحاولة",
-    "rescheduled": "أُعيدت الجدولة إلى {{date}}"
+    "rescheduled": "أُعيدت الجدولة إلى {{date}}",
+    "rescheduleError": "تعذّر إعادة جدولة المنشور"
   },
   "filters": {
     "all": "الكل",

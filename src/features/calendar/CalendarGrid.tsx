@@ -19,7 +19,7 @@ interface CalendarGridProps {
   view: 'month' | 'week'
   onDayClick: (dateKey: string) => void
   onPostClick: (postId: string) => void
-  onPostDrop?: (postId: string, dateKey: string, time: string) => void
+  onPostDrop?: (postId: string, dateKey: string, time: string) => Promise<void> | void
   onDatesChange?: (date: Date) => void
   /** Review mode disables rescheduling. */
   editable?: boolean
@@ -90,15 +90,26 @@ export function CalendarGrid({
 
   const handleDateClick = (arg: DateClickArg) => onDayClick(arg.dateStr.slice(0, 10))
 
-  const handleEventDrop = (arg: EventDropArg) => {
+  const handleEventDrop = async (arg: EventDropArg) => {
     const start = arg.event.start
     if (!start || !onPostDrop) {
       arg.revert()
       return
     }
     const dateKey = toDateKey(start)
-    const time = `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`
-    onPostDrop(arg.event.id, dateKey, time)
+    const post = arg.event.extendedProps.post as Post | undefined
+    // In month view, keep the post's existing scheduled time so moving between days
+    // doesn't reset or shift hours unexpectedly. In week view, use the target time slot.
+    const time =
+      view === 'month' && post?.time
+        ? post.time
+        : `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`
+
+    try {
+      await onPostDrop(arg.event.id, dateKey, time)
+    } catch {
+      arg.revert()
+    }
   }
 
   return (

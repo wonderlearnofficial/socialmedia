@@ -106,8 +106,13 @@ export function CalendarPage({ workspace = 'wonderlearn' }: CalendarPageProps) {
 
   const handleReschedule = useCallback(
     async (postId: string, dateKey: string, time: string) => {
-      await updatePost.mutateAsync({ id: postId, patch: { date: dateKey, time } })
-      toast.success(t('calendar.rescheduled', { date: formatDateShort(dateKey, i18n.language) }))
+      try {
+        await updatePost.mutateAsync({ id: postId, patch: { date: dateKey, time } })
+        toast.success(t('calendar.rescheduled', { date: formatDateShort(dateKey, i18n.language) }))
+      } catch (err) {
+        toast.error(t('calendar.rescheduleError'))
+        throw err
+      }
     },
     [updatePost, t, i18n.language],
   )

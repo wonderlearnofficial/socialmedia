@@ -35,7 +35,8 @@
     "loadErrorTitle": "Couldn't load the calendar",
     "loadErrorBody": "Something went wrong while fetching your posts.",
     "retry": "Try again",
-    "rescheduled": "Rescheduled to {{date}}"
+    "rescheduled": "Rescheduled to {{date}}",
+    "rescheduleError": "Failed to reschedule post"
   },
   "filters": {
     "all": "All",

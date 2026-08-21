@@ -27,11 +27,12 @@ export function MediaThumb({ post, className }: { post: Post; className?: string
           src={src}
           alt=""
           loading="lazy"
-          className="size-full object-cover"
+          draggable={false}
+          className="size-full select-none pointer-events-none object-cover"
           onError={() => setFailed(true)}
         />
       ) : (
-        <span className="grid size-full place-items-center text-muted-foreground">
+        <span className="grid size-full select-none pointer-events-none place-items-center text-muted-foreground">
           <Icon className="size-4" />
         </span>
       )}
