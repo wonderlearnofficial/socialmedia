@@ -1,10 +1,6 @@
 import { cn } from '@/lib/utils'
 
-/**
- * The WonderLearn lockup. The supplied PNG wordmark is dark grey and would sink
- * into the dark theme, so only the colored cube is used as artwork — it reads on
- * both themes — and the wordmark is set in the app's own typeface.
- */
+/** Just the cube, no wordmark — used where space is tight (e.g. the favicon-sized slot). */
 export function BrandMark({ className }: { className?: string }) {
   return (
     <img
@@ -24,21 +20,25 @@ interface BrandLockupProps {
   className?: string
 }
 
-export function BrandLockup({ subtitle, size = 'md', className }: BrandLockupProps) {
-  const mark = { sm: 'size-7', md: 'size-8', lg: 'size-11' }[size]
-  const name = { sm: 'text-sm', md: 'text-[15px]', lg: 'text-xl' }[size]
+const LOCKUP_HEIGHT = { sm: 'h-6', md: 'h-7', lg: 'h-10' }
 
+export function BrandLockup({ subtitle, size = 'md', className }: BrandLockupProps) {
   return (
     <span className={cn('flex items-center gap-2.5', className)}>
-      <BrandMark className={mark} />
-      <span className="min-w-0 leading-tight">
-        <span className={cn('block truncate font-semibold tracking-tight', name)}>
-          Wonder<span className="text-muted-foreground">learn</span>
-        </span>
-        {subtitle && (
-          <span className="block truncate text-[11px] text-muted-foreground">{subtitle}</span>
-        )}
+      {/* The source lockup's wordmark is dark grey, drawn for a light background —
+          on dark chrome it needs its own light plate behind it to stay legible. */}
+      <span className="shrink-0 rounded-md bg-transparent px-0 py-0 dark:bg-white dark:px-2 dark:py-1">
+        <img
+          src={`${import.meta.env.BASE_URL}WonderLearn.png`}
+          alt="Wonderlearn"
+          className={cn('w-auto select-none object-contain', LOCKUP_HEIGHT[size])}
+        />
       </span>
+      {subtitle && (
+        <span className="min-w-0 truncate text-[11px] leading-tight text-muted-foreground">
+          {subtitle}
+        </span>
+      )}
     </span>
   )
 }
