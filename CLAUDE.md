@@ -1,7 +1,7 @@
 # Wonderlearn — content calendar & review platform
 
 React + TypeScript + Vite SPA, deployed as a static site to GitHub Pages
-(`wonderlearnofficial/socialmedia`), backed by a real Supabase Postgres
+(`wonderlearnofficial/WonderLearn-CRM`), backed by a real Supabase Postgres
 database with Supabase Auth. Two workspaces — "Wonderlearn" and "Dr. Wael"
 (LinkedIn-only) — let a social media manager plan a content calendar and let
 a client review/approve posts with no account needed.
@@ -81,7 +81,7 @@ npm run typecheck     # tsc --noEmit
 npm run lint          # eslint .
 npm test              # vitest run
 npm run test:e2e       # playwright test (needs E2E_LOGIN_PIN env var for the authenticated flow; other tests run without it)
-npm run build:pages   # production build with the /socialmedia/ base path (what CI runs)
+npm run build:pages   # production build with the /WonderLearn-CRM/ base path (what CI runs)
 ```
 
 CI (`.github/workflows/deploy.yml`) builds and deploys to GitHub Pages on

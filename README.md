@@ -68,16 +68,16 @@ npx supabase migration up
 # http://localhost:54323
 ```
 
-| Script                | What it does                                                 |
-| --------------------- | ------------------------------------------------------------ |
-| `npm run dev`         | Vite dev server                                              |
-| `npm run build`       | Typecheck, then production build                             |
-| `npm run build:pages` | Production build with `/socialmedia/` base path (used by CI) |
-| `npm run preview`     | Serve the production build                                   |
-| `npm test`            | Vitest unit and component tests                              |
-| `npm run test:e2e`    | Playwright end-to-end tests                                  |
-| `npm run lint`        | ESLint                                                       |
-| `npm run format`      | Prettier                                                     |
+| Script                | What it does                                                     |
+| --------------------- | ---------------------------------------------------------------- |
+| `npm run dev`         | Vite dev server                                                  |
+| `npm run build`       | Typecheck, then production build                                 |
+| `npm run build:pages` | Production build with `/WonderLearn-CRM/` base path (used by CI) |
+| `npm run preview`     | Serve the production build                                       |
+| `npm test`            | Vitest unit and component tests                                  |
+| `npm run test:e2e`    | Playwright end-to-end tests                                      |
+| `npm run lint`        | ESLint                                                           |
+| `npm run format`      | Prettier                                                         |
 
 ## Key Features & Architecture
 

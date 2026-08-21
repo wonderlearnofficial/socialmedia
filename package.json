@@ -1,12 +1,12 @@
 {
-  "name": "socialmedia",
+  "name": "wonderlearn-crm",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "build:pages": "tsc --noEmit && vite build --base=/socialmedia/",
+    "build:pages": "tsc --noEmit && vite build --base=/WonderLearn-CRM/",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
