@@ -32,7 +32,15 @@ export function googleDriveFileId(url: string): string | null {
 }
 
 export function driveThumbnailUrl(fileId: string, width = 1200) {
+  return `https://lh3.googleusercontent.com/d/${fileId}=w${width}`
+}
+
+export function driveThumbnailFallbackUrl(fileId: string, width = 1200) {
   return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${width}`
+}
+
+export function driveDirectViewUrl(fileId: string) {
+  return `https://drive.google.com/uc?export=view&id=${fileId}`
 }
 
 /**
@@ -67,7 +75,11 @@ export function detectMedia(url: string): MediaInfo {
 
   if (host.includes('drive.google.com') || host.includes('docs.google.com')) {
     const id = googleDriveFileId(url)
-    return base('google-drive', id ? { previewUrl: driveThumbnailUrl(id) } : undefined)
+    const isVideo = VIDEO_RE.test(url)
+    return base(
+      'google-drive',
+      id ? { kind: isVideo ? 'video' : 'image', previewUrl: driveThumbnailUrl(id) } : undefined,
+    )
   }
   if (host.includes('dropbox.com')) {
     const direct = dropboxDirectUrl(url)
@@ -102,4 +114,37 @@ export function fileNameFromUrl(url: string): string | null {
   } catch {
     return null
   }
+}
+
+/**
+ * Formats a file name using the post title while preserving or inferring the file extension.
+ * e.g. title: "TEst", existing: "image.png" -> "TEst.png"
+ */
+export function buildPostFileName(
+  title: string,
+  existingFileName?: string | null,
+  url?: string | null,
+  contentType?: string,
+): string {
+  const candidate = existingFileName || (url ? fileNameFromUrl(url) : '') || ''
+  const match = candidate.match(/\.([a-zA-Z0-9]{2,5})(?:\?.*)?$/)
+  let ext = match ? `.${match[1]}` : ''
+
+  if (!ext) {
+    if (contentType === 'video' || contentType === 'reel') {
+      ext = '.mp4'
+    } else {
+      ext = '.png'
+    }
+  }
+
+  const cleanTitle =
+    title
+      .trim()
+      .replace(/[/\\?%*:|"<>]/g, '-')
+      .replace(/\s+/g, ' ') || 'Post'
+  if (cleanTitle.toLowerCase().endsWith(ext.toLowerCase())) {
+    return cleanTitle
+  }
+  return `${cleanTitle}${ext}`
 }

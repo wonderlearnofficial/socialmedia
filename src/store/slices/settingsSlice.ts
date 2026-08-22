@@ -8,6 +8,7 @@ export interface SettingsState {
   theme: ThemeSetting
   language: LanguageSetting
   activeWorkspace: WorkspaceId
+  trackingAs?: string | null
 }
 
 export const SETTINGS_KEY = 'cadence-settings'
@@ -17,6 +18,7 @@ function loadSettings(): SettingsState {
     theme: 'dark',
     language: 'en',
     activeWorkspace: 'wonderlearn',
+    trackingAs: null,
   }
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
@@ -28,6 +30,7 @@ function loadSettings(): SettingsState {
       activeWorkspace: WORKSPACES.includes(parsed.activeWorkspace as WorkspaceId)
         ? (parsed.activeWorkspace as WorkspaceId)
         : 'wonderlearn',
+      trackingAs: parsed.trackingAs ?? null,
     }
   } catch {
     return defaults
@@ -47,8 +50,11 @@ const settingsSlice = createSlice({
     setActiveWorkspace(state, action: PayloadAction<WorkspaceId>) {
       state.activeWorkspace = action.payload
     },
+    setTrackingAs(state, action: PayloadAction<string | null>) {
+      state.trackingAs = action.payload
+    },
   },
 })
 
-export const { setTheme, setLanguage, setActiveWorkspace } = settingsSlice.actions
+export const { setTheme, setLanguage, setActiveWorkspace, setTrackingAs } = settingsSlice.actions
 export default settingsSlice.reducer

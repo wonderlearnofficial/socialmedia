@@ -4,7 +4,16 @@ import { ExternalLink, ImageOff, Loader2, Play, UploadCloud } from 'lucide-react
 import { Button } from '@/components/ui/button'
 import { useFileDrop } from '@/features/files/useFileDrop'
 import { CONTENT_TYPE_META } from '@/lib/constants'
-import { detectMedia, fileNameFromUrl, type MediaProviderId } from '@/lib/media'
+import {
+  detectMedia,
+  driveDirectViewUrl,
+  driveFilePreviewUrl,
+  driveThumbnailFallbackUrl,
+  driveThumbnailUrl,
+  fileNameFromUrl,
+  googleDriveFileId,
+  type MediaProviderId,
+} from '@/lib/media'
 import { cn } from '@/lib/utils'
 import type { Post } from '@/types'
 import { MediaProviderBadge } from './MediaProviderBadge'
@@ -26,8 +35,7 @@ interface MediaPreviewProps {
 }
 
 /**
- * Large media preview. Every remote source is treated as untrusted — a failed
- * image or video collapses into a labelled fallback card rather than a broken box.
+ * Large media preview with multi-tier fallback for Google Drive and external files.
  */
 export function MediaPreview({
   post,
@@ -37,7 +45,9 @@ export function MediaPreview({
   uploading,
 }: MediaPreviewProps) {
   const { t } = useTranslation()
-  const [state, setState] = useState<LoadState>('idle')
+  const [loadState, setLoadState] = useState<LoadState>('idle')
+  const [candidateIndex, setCandidateIndex] = useState(0)
+  const [useIframe, setUseIframe] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
   const { isDragging, dropProps } = useFileDrop((files) => onUpload?.(files))
 
@@ -46,14 +56,38 @@ export function MediaPreview({
     [post.contentUrl],
   )
 
-  // Prefer an explicit thumbnail, then a provider-derived preview.
-  const imageSrc = post.mediaPreview ?? (media?.kind === 'image' ? media.previewUrl : undefined)
-  const videoSrc = media?.kind === 'video' ? media.previewUrl : undefined
-  const source = videoSrc ?? imageSrc ?? media?.previewUrl
+  const driveId = useMemo(
+    () => post.driveFileId || (post.contentUrl ? googleDriveFileId(post.contentUrl) : null),
+    [post.driveFileId, post.contentUrl],
+  )
+
+  // Build ordered list of candidate preview image/video sources
+  const candidateSources = useMemo(() => {
+    const list: string[] = []
+    if (post.mediaPreview) list.push(post.mediaPreview)
+    if (driveId) {
+      list.push(driveThumbnailUrl(driveId, 1200))
+      list.push(driveThumbnailFallbackUrl(driveId, 1200))
+      list.push(driveDirectViewUrl(driveId))
+    }
+    if (media?.previewUrl && !list.includes(media.previewUrl)) {
+      list.push(media.previewUrl)
+    }
+    if (post.contentUrl && !list.includes(post.contentUrl)) {
+      list.push(post.contentUrl)
+    }
+    return list
+  }, [post.mediaPreview, driveId, media?.previewUrl, post.contentUrl])
 
   useEffect(() => {
-    setState('idle')
-  }, [source])
+    setCandidateIndex(0)
+    setUseIframe(false)
+    setLoadState('idle')
+  }, [candidateSources])
+
+  const currentSource = candidateSources[candidateIndex]
+  const isVideo =
+    post.contentType === 'video' || post.contentType === 'reel' || media?.kind === 'video'
 
   const fileName =
     post.contentFileName ?? (post.contentUrl ? fileNameFromUrl(post.contentUrl) : null)
@@ -69,8 +103,19 @@ export function MediaPreview({
     className,
   )
 
+  const handleImageError = () => {
+    if (candidateIndex < candidateSources.length - 1) {
+      setCandidateIndex((prev) => prev + 1)
+    } else if (driveId && !useIframe) {
+      // If direct image loading failed across all endpoints, try embedded Drive viewer
+      setUseIframe(true)
+    } else {
+      setLoadState('failed')
+    }
+  }
+
   // Nothing attached at all.
-  if (!source && !post.contentUrl) {
+  if (!post.contentUrl && !post.mediaPreview) {
     if (!onUpload) {
       return (
         <div className={cn(frame, 'grid place-items-center')}>
@@ -119,9 +164,30 @@ export function MediaPreview({
     )
   }
 
-  // Attached, but not previewable here (Drive permissions, Figma, Canva, …).
-  const unpreviewable = !source || state === 'failed'
-  if (unpreviewable) {
+  // If iframe fallback is active (e.g. for Drive PDFs/Docs/Videos/Protected files)
+  if (useIframe && driveId) {
+    return (
+      <div className={cn(frame, 'bg-black/40 min-h-[300px]')}>
+        <iframe
+          src={driveFilePreviewUrl(driveId)}
+          title={post.title}
+          className="size-full min-h-[300px] border-0"
+          allow="autoplay"
+        />
+        <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
+          {media && <MediaProviderBadge provider={media.provider} label={media.label} />}
+          {fileName && (
+            <span className="max-w-[60%] truncate rounded-full border bg-card/80 px-2 py-0.5 text-[11px] font-medium text-muted-foreground backdrop-blur">
+              {fileName}
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Attached, but failed to load all options
+  if (loadState === 'failed' && !currentSource) {
     return (
       <div className={cn(frame, 'grid place-items-center bg-card')}>
         <div className="flex max-w-xs flex-col items-center gap-3 px-6 py-10 text-center">
@@ -144,8 +210,6 @@ export function MediaPreview({
               onClick={() => window.open(post.contentUrl, '_blank', 'noopener,noreferrer')}
             >
               <ExternalLink className="size-3.5" />
-              {/* Named providers read well ("Open in Google Drive"); generic
-                  image/video/link sources do not, so fall back to a plain label. */}
               {media && !GENERIC_PROVIDERS.has(media.provider)
                 ? t('post.openIn', { provider: media.label })
                 : t('post.openOriginal')}
@@ -157,31 +221,31 @@ export function MediaPreview({
   }
 
   return (
-    <div className={cn(frame, 'group bg-black/40')}>
-      {videoSrc ? (
+    <div className={cn(frame, 'group bg-black/40 flex items-center justify-center')}>
+      {isVideo && currentSource?.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i) ? (
         <video
-          src={videoSrc}
+          src={currentSource}
           poster={post.mediaPreview}
           controls
           playsInline
           preload="metadata"
           className="size-full object-contain"
-          onError={() => setState('failed')}
-          onLoadedMetadata={() => setState('loaded')}
+          onError={handleImageError}
+          onLoadedMetadata={() => setLoadState('loaded')}
         />
       ) : (
         <img
-          src={source}
+          src={currentSource}
           alt={post.title}
           loading="lazy"
-          className="size-full object-cover"
-          onError={() => setState('failed')}
-          onLoad={() => setState('loaded')}
+          className="size-full object-contain max-h-[460px]"
+          onError={handleImageError}
+          onLoad={() => setLoadState('loaded')}
         />
       )}
 
-      {/* Video-typed posts that only have a still get a play affordance. */}
-      {!videoSrc && (post.contentType === 'video' || post.contentType === 'reel') && (
+      {/* Video-typed posts get a play affordance if showing static image */}
+      {isVideo && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <span className="grid size-12 place-items-center rounded-full bg-black/55 text-white backdrop-blur-sm">
             <Play className="size-5 fill-current" />

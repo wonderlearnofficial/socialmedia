@@ -6,15 +6,23 @@ import { Button } from '@/components/ui/button'
 import { uploadFile } from '@/services/upload'
 
 interface UploadFieldProps {
+  folderName?: string
+  category?: string
   onUploaded: (result: {
     contentUrl: string
     contentFileName: string
     driveFileId?: string
+    folderName?: string
   }) => void
   disabled?: boolean
 }
 
-export function UploadField({ onUploaded, disabled }: UploadFieldProps) {
+export function UploadField({
+  onUploaded,
+  folderName = 'Project1',
+  category = 'Social Media',
+  disabled,
+}: UploadFieldProps) {
   const { t } = useTranslation()
   const filesInput = useRef<HTMLInputElement>(null)
   const folderInput = useRef<HTMLInputElement>(null)
@@ -33,9 +41,14 @@ export function UploadField({ onUploaded, disabled }: UploadFieldProps) {
 
     for (const file of toUpload) {
       try {
-        // Stage, not folder: a post's image always lands in Review, and the
-        // designer never has to pick a destination.
-        succeeded.push(await uploadFile(file, { stage: 'review' }))
+        // Uploads into Review / Social Media / [folderName]
+        succeeded.push(
+          await uploadFile(file, {
+            stage: 'review',
+            category,
+            folderName,
+          }),
+        )
       } catch {
         failed += 1
       }

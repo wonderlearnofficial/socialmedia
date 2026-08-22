@@ -159,7 +159,7 @@ export function CalendarHeader({
               </Button>
             )}
             {onAddPost && (
-              <Button size="sm" onClick={onAddPost}>
+              <Button size="sm" onClick={onAddPost} aria-label={t('calendar.addToDay')}>
                 <Plus />
                 <span className="hidden sm:inline">{t('calendar.addToDay')}</span>
               </Button>

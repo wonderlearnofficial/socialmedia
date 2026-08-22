@@ -8,7 +8,9 @@ import type { Post } from '@/types'
 export function MediaThumb({ post, className }: { post: Post; className?: string }) {
   const [failed, setFailed] = useState(false)
   const media = post.contentUrl ? detectMedia(post.contentUrl) : null
-  const src = post.mediaPreview ?? (media?.kind === 'image' ? media.previewUrl : undefined)
+  const src =
+    post.mediaPreview ??
+    (media?.kind === 'image' || media?.provider === 'google-drive' ? media.previewUrl : undefined)
   const Icon = CONTENT_TYPE_META[post.contentType].icon
 
   useEffect(() => {
@@ -27,6 +29,8 @@ export function MediaThumb({ post, className }: { post: Post; className?: string
           src={src}
           alt=""
           loading="lazy"
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
           draggable={false}
           className="size-full select-none pointer-events-none object-cover"
           onError={() => setFailed(true)}

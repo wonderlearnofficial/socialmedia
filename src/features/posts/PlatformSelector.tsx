@@ -24,16 +24,20 @@ export function PlatformSelector({
 
   const toggle = (platform: SocialPlatform) => {
     if (isSingleLocked) return
-    onChange(value.includes(platform) ? value.filter((p) => p !== platform) : [...value, platform])
+    if (value.includes(platform)) {
+      // Must keep at least 1 social media platform selected
+      if (value.length <= 1) return
+      onChange(value.filter((p) => p !== platform))
+    } else {
+      onChange([...value, platform])
+    }
   }
 
   return (
     <div
       className={cn(
         'grid gap-2',
-        platforms.length === 1
-          ? 'grid-cols-1 sm:grid-cols-2 max-w-xs'
-          : 'grid-cols-3 sm:grid-cols-6',
+        platforms.length === 1 ? 'grid-cols-1 max-w-xs' : 'grid-cols-2 sm:grid-cols-3',
         className,
       )}
     >
@@ -48,10 +52,10 @@ export function PlatformSelector({
             disabled={isSingleLocked}
             onClick={() => toggle(platform)}
             className={cn(
-              'group relative flex items-center gap-2.5 rounded-lg border p-2.5 text-start transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+              'group relative flex min-w-0 items-center gap-2 rounded-lg border p-2 text-start transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
               selected
-                ? 'border-primary bg-primary/5'
-                : 'hover:border-foreground/20 hover:bg-accent/50',
+                ? 'border-primary bg-primary/10 text-white shadow-xs'
+                : 'border-white/[0.08] bg-white/[0.02] text-neutral-300 hover:border-white/[0.16] hover:bg-white/[0.05] hover:text-white',
               isSingleLocked && 'cursor-default opacity-90',
             )}
           >
@@ -59,15 +63,17 @@ export function PlatformSelector({
               platform={platform}
               brand
               className={cn(
-                'size-4 transition-opacity',
+                'size-4 shrink-0 transition-opacity',
                 !selected && 'opacity-60 group-hover:opacity-100',
               )}
             />
-            <span className="text-xs font-medium">{PLATFORM_META[platform].label}</span>
+            <span className="truncate text-xs font-medium">{PLATFORM_META[platform].label}</span>
             <span
               className={cn(
                 'ms-auto grid size-4 shrink-0 place-items-center rounded-full border transition-colors',
-                selected ? 'border-primary bg-primary text-primary-foreground' : 'border-input',
+                selected
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-white/[0.15] bg-white/[0.04]',
               )}
             >
               {selected && <Check className="size-2.5" strokeWidth={3} />}

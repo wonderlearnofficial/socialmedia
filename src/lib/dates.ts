@@ -54,3 +54,39 @@ export function formatDateShort(dateKey: string, lang = 'en') {
 export function formatTimestamp(iso: string, lang = 'en') {
   return format(parseISO(iso), 'MMM d · h:mm a', { locale: dateLocale(lang) })
 }
+
+/** Friendly relative active timestamp (e.g. "Active now", "Active 10m ago", "Today at 2:30 PM", "Aug 20") */
+export function formatLastActive(dateInput?: string | Date | null, lang = 'en'): string {
+  if (!dateInput) return lang === 'ar' ? 'نشط الآن' : 'Active now'
+  try {
+    const d = typeof dateInput === 'string' ? parseISO(dateInput) : dateInput
+    if (isNaN(d.getTime())) return lang === 'ar' ? 'نشط الآن' : 'Active now'
+
+    const now = new Date()
+    const diffMinutes = Math.floor((now.getTime() - d.getTime()) / (1000 * 60))
+
+    if (diffMinutes < 5) {
+      return lang === 'ar' ? 'نشط الآن' : 'Active now'
+    }
+    if (diffMinutes < 60) {
+      return lang === 'ar' ? `نشط منذ ${diffMinutes} د` : `Active ${diffMinutes}m ago`
+    }
+    const diffHours = Math.floor(diffMinutes / 60)
+    if (diffHours < 12) {
+      return lang === 'ar' ? `نشط منذ ${diffHours} س` : `Active ${diffHours}h ago`
+    }
+    if (now.toDateString() === d.toDateString()) {
+      const timeStr = format(d, 'h:mm a', { locale: dateLocale(lang) })
+      return lang === 'ar' ? `اليوم في ${timeStr}` : `Today, ${timeStr}`
+    }
+    const yesterday = new Date(now)
+    yesterday.setDate(now.getDate() - 1)
+    if (yesterday.toDateString() === d.toDateString()) {
+      const timeStr = format(d, 'h:mm a', { locale: dateLocale(lang) })
+      return lang === 'ar' ? `أمس في ${timeStr}` : `Yesterday, ${timeStr}`
+    }
+    return format(d, 'MMM d, h:mm a', { locale: dateLocale(lang) })
+  } catch {
+    return lang === 'ar' ? 'نشط الآن' : 'Active now'
+  }
+}

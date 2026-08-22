@@ -14,6 +14,18 @@ const Avatar = React.forwardRef<
 ))
 Avatar.displayName = 'Avatar'
 
+const AvatarImage = React.forwardRef<
+  React.ComponentRef<typeof AvatarPrimitive.Image>,
+  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
+>(({ className, ...props }, ref) => (
+  <AvatarPrimitive.Image
+    ref={ref}
+    className={cn('aspect-square size-full object-cover', className)}
+    {...props}
+  />
+))
+AvatarImage.displayName = 'AvatarImage'
+
 const AvatarFallback = React.forwardRef<
   React.ComponentRef<typeof AvatarPrimitive.Fallback>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback>
@@ -29,4 +41,4 @@ const AvatarFallback = React.forwardRef<
 ))
 AvatarFallback.displayName = 'AvatarFallback'
 
-export { Avatar, AvatarFallback }
+export { Avatar, AvatarImage, AvatarFallback }

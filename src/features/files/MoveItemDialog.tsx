@@ -82,15 +82,15 @@ export function MoveItemDialog({ target, onClose, workspace }: MoveItemDialogPro
 
   return (
     <Dialog open={Boolean(target)} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#101317] p-5 text-white shadow-2xl backdrop-blur-xl">
         <DialogHeader>
-          <DialogTitle>{t('files.moveTitle', { name: target.name })}</DialogTitle>
+          <DialogTitle className="text-base font-semibold text-white">
+            {t('files.moveTitle', { name: target.name })}
+          </DialogTitle>
         </DialogHeader>
-        <div className="max-h-64 space-y-0.5 overflow-y-auto">
+        <div className="max-h-64 space-y-1 overflow-y-auto py-2">
           {options.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              {t('files.noOtherFolders')}
-            </p>
+            <p className="py-6 text-center text-xs text-[#6F7782]">{t('files.noOtherFolders')}</p>
           ) : (
             options.map(({ folder, depth }) => (
               <button
@@ -98,25 +98,39 @@ export function MoveItemDialog({ target, onClose, workspace }: MoveItemDialogPro
                 type="button"
                 onClick={() => setSelected(folder)}
                 className={cn(
-                  'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-start text-sm transition-colors',
+                  'flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start text-xs font-medium transition-all',
                   selected?.id === folder.id
-                    ? 'bg-accent text-accent-foreground'
-                    : 'hover:bg-accent/60',
+                    ? 'bg-[#009FE2] text-white shadow-[0_0_10px_rgba(0,159,226,0.3)]'
+                    : 'text-[#A7ADB5] hover:bg-[#181D22] hover:text-white',
                 )}
-                style={{ paddingInlineStart: `${depth * 16 + 10}px` }}
+                style={{ paddingInlineStart: `${depth * 16 + 12}px` }}
               >
-                <FolderIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                <FolderIcon
+                  className={cn(
+                    'size-3.5 shrink-0',
+                    selected?.id === folder.id ? 'text-white' : 'text-[#009FE2]',
+                  )}
+                />
                 <span className="truncate">{folder.name}</span>
               </button>
             ))
           )}
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={pending}>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            disabled={pending}
+            className="rounded-xl text-xs text-[#A7ADB5] hover:bg-[#181D22] hover:text-white"
+          >
             {t('editor.cancel')}
           </Button>
-          <Button onClick={submit} disabled={pending || !selected}>
-            {pending && <Loader2 className="animate-spin" />}
+          <Button
+            onClick={submit}
+            disabled={pending || !selected}
+            className="gap-1.5 rounded-xl bg-[#009FE2] text-xs font-semibold text-white shadow-[0_0_15px_rgba(0,159,226,0.3)] hover:bg-[#009FE2]/90"
+          >
+            {pending && <Loader2 className="size-3.5 animate-spin" />}
             {t('files.move')}
           </Button>
         </DialogFooter>

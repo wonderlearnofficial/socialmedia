@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildPostFileName,
   detectMedia,
   driveFilePreviewUrl,
   driveThumbnailUrl,
@@ -86,6 +87,35 @@ describe('driveFilePreviewUrl', () => {
   it('builds the embeddable Drive viewer URL for any file id', () => {
     expect(driveFilePreviewUrl('1AbCdEfGhIjKlM')).toBe(
       'https://drive.google.com/file/d/1AbCdEfGhIjKlM/preview',
+    )
+  })
+})
+
+describe('buildPostFileName', () => {
+  it('formats filename with post title preserving existing extension', () => {
+    expect(buildPostFileName('TEst', 'image.png')).toBe('TEst.png')
+    expect(buildPostFileName('Summer Promo 2026', 'upload-1234.jpg')).toBe('Summer Promo 2026.jpg')
+  })
+
+  it('does not duplicate extension if post title already contains it', () => {
+    expect(buildPostFileName('TEst.png', 'image.png')).toBe('TEst.png')
+    expect(buildPostFileName('video.mp4', 'raw.mp4')).toBe('video.mp4')
+  })
+
+  it('extracts extension from url if existingFileName is not provided', () => {
+    expect(
+      buildPostFileName('Product Feature', null, 'https://example.com/assets/banner.webp'),
+    ).toBe('Product Feature.webp')
+  })
+
+  it('infers extension based on content type when no extension exists', () => {
+    expect(buildPostFileName('Brand Reel', null, null, 'reel')).toBe('Brand Reel.mp4')
+    expect(buildPostFileName('Graphic Post', null, null, 'image')).toBe('Graphic Post.png')
+  })
+
+  it('sanitizes invalid path characters from post title', () => {
+    expect(buildPostFileName('New/Post:Special?Title*', 'graphic.png')).toBe(
+      'New-Post-Special-Title-.png',
     )
   })
 })

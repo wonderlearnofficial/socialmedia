@@ -62,18 +62,34 @@ async function postToScript<T>(body: unknown): Promise<T> {
 }
 
 /** `stage` is how a post image lands in the Review folder without anyone
- *  choosing it; the Files browser passes `startFolderId` instead, which wins. */
+ *  choosing it; the Files browser passes `startFolderId` instead, which wins.
+ *  `category` defaults to "Social Media" and `folderName` is the project subfolder. */
 export async function uploadFile(
   file: File,
-  opts: { startFolderId?: string; stage?: DriveStage } = {},
+  opts: {
+    startFolderId?: string
+    stage?: DriveStage
+    category?: string
+    folderName?: string
+    path?: string[]
+  } = {},
 ): Promise<UploadedFile> {
   const base64 = await fileToBase64(file)
+  const category = opts.category || 'Social Media'
+  const folderName = opts.folderName || 'General'
+  const path =
+    opts.path ||
+    (opts.stage ? [opts.stage === 'done' ? 'Done' : 'Review', category, folderName] : undefined)
+
   const body: UploadResponse = await postToScript({
     fileName: file.name,
     mimeType: file.type || 'application/octet-stream',
     base64,
     startFolderId: opts.startFolderId,
     stage: opts.stage,
+    category,
+    folderName,
+    path,
   })
   if (!body.success || !body.url) {
     throw new Error(body.error || `Upload failed for ${file.name}`)
@@ -126,10 +142,25 @@ export async function createGoogleFile(
   }
 }
 
-/** Moves an already-uploaded image between the stage folders — the Drive half
- *  of marking a post complete. The file keeps its id and url. */
-export async function moveFileToStage(fileId: string, stage: DriveStage): Promise<void> {
-  const body: UploadResponse = await postToScript({ action: 'moveToStage', fileId, stage })
+/** Moves an already-uploaded image between the stage folders (e.g. Review/Social Media/Project1 -> Done/Social Media/Project1).
+ *  The file keeps its id and url. */
+export async function moveFileToStage(
+  fileId: string,
+  stage: DriveStage,
+  opts: { folderName?: string; category?: string } = {},
+): Promise<void> {
+  const category = opts.category || 'Social Media'
+  const folderName = opts.folderName || 'General'
+  const path = [stage === 'done' ? 'Done' : 'Review', category, folderName]
+
+  const body: UploadResponse = await postToScript({
+    action: 'moveToStage',
+    fileId,
+    stage,
+    category,
+    folderName,
+    path,
+  })
   if (!body.success) throw new Error(body.error || 'Could not move the file in Google Drive')
 }
 
@@ -148,4 +179,64 @@ export async function moveDriveItem(itemType: DriveItemType, id: string, newPare
 export async function trashDriveItem(itemType: DriveItemType, id: string) {
   const body: UploadResponse = await postToScript({ action: 'trash', itemType, id })
   if (!body.success) throw new Error(body.error || 'Could not delete item')
+}
+
+export interface DriveListedFolder {
+  id: string
+  name: string
+  url: string
+}
+
+export interface DriveListedFile {
+  id: string
+  name: string
+  mimeType: string
+  size: number
+  url: string
+  modifiedTime: string
+}
+
+interface ListResponse {
+  success: boolean
+  folderId?: string
+  folders?: DriveListedFolder[]
+  files?: DriveListedFile[]
+  error?: string
+}
+
+/** Direct children of a Drive folder (root when omitted) — used to import
+ *  content that already exists in Drive but wasn't uploaded through the app,
+ *  so it never made it into the app's own database. */
+export async function listDriveContents(
+  folderId?: string,
+): Promise<{ folders: DriveListedFolder[]; files: DriveListedFile[] }> {
+  const body: ListResponse = await postToScript({ action: 'list', folderId })
+  if (!body.success) throw new Error(body.error || 'Could not list Drive contents')
+  return { folders: body.folders ?? [], files: body.files ?? [] }
+}
+
+/** Lists the project folders currently existing in Drive under Review > [category] (e.g. "Social Media" or "Dr. Wael Social Media"). */
+export async function listReviewSocialMediaFolders(
+  category: string = 'Social Media',
+): Promise<DriveListedFolder[]> {
+  try {
+    // 1. List root to find "Review" folder
+    const root = await listDriveContents()
+    const reviewFolder = root.folders.find((f) => f.name.toLowerCase() === 'review')
+    if (!reviewFolder) return []
+
+    // 2. List Review to find category folder (e.g. "Social Media" or "Dr. Wael Social Media")
+    const reviewChildren = await listDriveContents(reviewFolder.id)
+    const categoryFolder = reviewChildren.folders.find(
+      (f) => f.name.toLowerCase() === category.toLowerCase(),
+    )
+    if (!categoryFolder) return []
+
+    // 3. List the actual project folders inside Review > [category]
+    const categoryChildren = await listDriveContents(categoryFolder.id)
+    return categoryChildren.folders
+  } catch (err) {
+    console.warn(`Could not list Review / ${category} folders from Drive:`, err)
+  }
+  return []
 }

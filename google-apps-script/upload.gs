@@ -14,6 +14,10 @@
 //   move          { itemType: "file"|"folder", id, newParentId }
 //   moveToStage   { fileId, stage: "review"|"done" }
 //   trash         { itemType: "file"|"folder", id }   — moves to Drive trash, not permanent
+//   list          { folderId? }   — direct children only (root when omitted); lets the
+//                                    app import content that already exists in Drive but
+//                                    wasn't uploaded through it, since nothing here is
+//                                    otherwise reflected in the app's own database
 //
 // createGoogleFile needs the Drive advanced service switched on once, in the
 // editor: Services → + → Drive API → v3 → Add. It asks for no scope beyond the
@@ -42,6 +46,7 @@ function doPost(e) {
     if (action === 'rename') return handleRename(data);
     if (action === 'move') return handleMove(data);
     if (action === 'trash') return handleTrash(data);
+    if (action === 'list') return handleList(data);
     return handleUpload(data);
   } catch (error) {
     return response({ success: false, error: error.toString() });
@@ -165,6 +170,37 @@ function getStageFolder(stage) {
   const root = DriveApp.getFolderById(FOLDER_ID);
   const existing = root.getFoldersByName(name);
   return existing.hasNext() ? existing.next() : root.createFolder(name);
+}
+
+/** Direct children only — the app walks one level at a time, matching how the
+ *  Files browser already navigates, rather than recursively scanning the
+ *  whole tree in one call (which risks the ~6-minute Apps Script time limit
+ *  on a large Drive). */
+function handleList(data) {
+  const folder = data.folderId ? DriveApp.getFolderById(data.folderId) : DriveApp.getFolderById(FOLDER_ID);
+
+  const folders = [];
+  const folderIter = folder.getFolders();
+  while (folderIter.hasNext()) {
+    const f = folderIter.next();
+    folders.push({ id: f.getId(), name: f.getName(), url: f.getUrl() });
+  }
+
+  const files = [];
+  const fileIter = folder.getFiles();
+  while (fileIter.hasNext()) {
+    const f = fileIter.next();
+    files.push({
+      id: f.getId(),
+      name: f.getName(),
+      mimeType: f.getMimeType(),
+      size: f.getSize(),
+      url: f.getUrl(),
+      modifiedTime: f.getLastUpdated().toISOString(),
+    });
+  }
+
+  return response({ success: true, folderId: folder.getId(), folders: folders, files: files });
 }
 
 function handleTrash(data) {

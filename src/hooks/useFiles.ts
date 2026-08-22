@@ -2,10 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import type { FileRecordInput, FolderInput, WorkspaceId } from '@/types'
 
-export function useFolders(workspace: WorkspaceId) {
+export function useFolders(workspace?: WorkspaceId | 'all') {
   return useQuery({
-    queryKey: ['folders', workspace],
-    queryFn: () => api.listFolders(workspace),
+    queryKey: ['folders', workspace ?? 'all'],
+    queryFn: () => api.listFolders(workspace && workspace !== 'all' ? workspace : undefined),
   })
 }
 
@@ -34,10 +34,10 @@ export function useDeleteFolder() {
   })
 }
 
-export function useFiles(workspace: WorkspaceId) {
+export function useFiles(workspace?: WorkspaceId | 'all') {
   return useQuery({
-    queryKey: ['files', workspace],
-    queryFn: () => api.listFiles(workspace),
+    queryKey: ['files', workspace ?? 'all'],
+    queryFn: () => api.listFiles(workspace && workspace !== 'all' ? workspace : undefined),
   })
 }
 

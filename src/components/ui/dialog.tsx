@@ -27,14 +27,20 @@ interface DialogContentProps extends React.ComponentPropsWithoutRef<
   typeof DialogPrimitive.Content
 > {
   hideClose?: boolean
+  /**
+   * Extra classes for the backdrop. Needed when one dialog opens on top of
+   * another: both default to z-50, so without raising the inner pair the outer
+   * backdrop paints over the inner dialog and swallows its clicks.
+   */
+  overlayClassName?: string
 }
 
 const DialogContent = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->(({ className, children, hideClose, ...props }, ref) => (
+>(({ className, children, hideClose, overlayClassName, ...props }, ref) => (
   <DialogPortal>
-    <DialogOverlay />
+    <DialogOverlay className={overlayClassName} />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(

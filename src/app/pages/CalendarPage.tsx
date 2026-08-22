@@ -4,6 +4,10 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import gsap from 'gsap'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { WorkspaceToggle } from '@/components/layout/WorkspaceToggle'
+import { BrandMark } from '@/components/shared/Brand'
+import { PlatformIcon } from '@/components/shared/PlatformIcon'
+import { Badge } from '@/components/ui/badge'
 import { CalendarShell } from '@/features/calendar/CalendarShell'
 import { CalendarSummary } from '@/features/calendar/CalendarSummary'
 import { DayDetailsModal } from '@/features/calendar/DayDetailsModal'
@@ -13,8 +17,10 @@ import { ShareCalendarModal } from '@/features/sharing/ShareCalendarModal'
 import { usePostById, useUpdatePost } from '@/hooks/usePosts'
 import { useVisiblePosts } from '@/hooks/useVisiblePosts'
 import { usePrefersReducedMotion } from '@/hooks/useReducedMotion'
+import { usePermissions } from '@/hooks/usePermissions'
 import { formatDateShort, formatMonthTitle, toMonthKey } from '@/lib/dates'
 import { postsForMonth } from '@/lib/filtering'
+import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setActiveWorkspace } from '@/store/slices/settingsSlice'
 import {
@@ -34,15 +40,21 @@ interface CalendarPageProps {
   workspace?: WorkspaceId
 }
 
-export function CalendarPage({ workspace = 'wonderlearn' }: CalendarPageProps) {
+export function CalendarPage({ workspace: workspaceProp }: CalendarPageProps = {}) {
   const { t, i18n } = useTranslation()
   const dispatch = useAppDispatch()
   const reduceMotion = usePrefersReducedMotion()
+  const { canCreatePost, canReschedulePost } = usePermissions()
   const containerRef = useRef<HTMLDivElement>(null)
 
+  const activeWorkspace = useAppSelector((s) => s.settings.activeWorkspace)
+  const workspace = activeWorkspace
+
   useEffect(() => {
-    dispatch(setActiveWorkspace(workspace))
-  }, [workspace, dispatch])
+    if (workspaceProp && workspaceProp !== activeWorkspace) {
+      dispatch(setActiveWorkspace(workspaceProp))
+    }
+  }, [workspaceProp]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { posts, data: allPosts, isLoading, isError, refetch } = useVisiblePosts(workspace)
   const { view, dateISO, selectedDay, activePostId, editor, shareOpen } = useAppSelector(
@@ -53,7 +65,7 @@ export function CalendarPage({ workspace = 'wonderlearn' }: CalendarPageProps) {
   const monthKey = toMonthKey(date)
 
   const isDrWael = workspace === 'dr_wael'
-  const title = isDrWael ? t('nav.drWael') : t('nav.socialMedia')
+  const title = t('nav.socialMedia')
   const subtitle = isDrWael
     ? t('calendar.drWaelSubtitle', { month: formatMonthTitle(date, i18n.language) })
     : t('calendar.socialMediaSubtitle', { month: formatMonthTitle(date, i18n.language) })
@@ -120,7 +132,36 @@ export function CalendarPage({ workspace = 'wonderlearn' }: CalendarPageProps) {
   return (
     <div ref={containerRef} className="flex h-full flex-col gap-4 p-4 sm:p-5 lg:p-6">
       <div data-animate="header">
-        <PageHeader title={title} subtitle={subtitle} />
+        <PageHeader
+          title={
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span>{title}</span>
+              <Badge
+                variant="outline"
+                className={cn(
+                  'gap-1.5 px-2.5 py-0.5 text-xs font-bold shadow-xs',
+                  workspace === 'wonderlearn'
+                    ? 'border-white/20 bg-white/10 text-white'
+                    : 'border-blue-500/30 bg-blue-500/10 text-blue-400',
+                )}
+              >
+                {workspace === 'wonderlearn' ? (
+                  <>
+                    <BrandMark className="size-3.5" />
+                    <span>WonderLearn Social Media</span>
+                  </>
+                ) : (
+                  <>
+                    <PlatformIcon platform="linkedin" className="size-3.5 text-[#0A66C2]" />
+                    <span>Dr. Wael Social Media</span>
+                  </>
+                )}
+              </Badge>
+            </div>
+          }
+          subtitle={<span className="font-medium text-foreground/85">{subtitle}</span>}
+          actions={<WorkspaceToggle />}
+        />
       </div>
 
       <div data-animate="summary" className="shrink-0">
@@ -141,9 +182,12 @@ export function CalendarPage({ workspace = 'wonderlearn' }: CalendarPageProps) {
           onViewChange={(next) => dispatch(setView(next))}
           onDayClick={(dateKey) => dispatch(openDay(dateKey))}
           onPostClick={(id) => dispatch(openPost(id))}
-          onPostDrop={handleReschedule}
+          onPostDrop={canReschedulePost ? handleReschedule : undefined}
           onShare={() => dispatch(setShareOpen(true))}
-          onAddPost={(dateKey) => dispatch(openEditor({ presetDate: dateKey }))}
+          onAddPost={
+            canCreatePost ? (dateKey) => dispatch(openEditor({ presetDate: dateKey })) : undefined
+          }
+          readOnly={!canCreatePost}
           filterCount={filterCount}
         />
       </div>
@@ -153,10 +197,14 @@ export function CalendarPage({ workspace = 'wonderlearn' }: CalendarPageProps) {
         posts={posts}
         onClose={() => dispatch(closeDay())}
         onPostClick={(id) => dispatch(openPost(id))}
-        onAddPost={(dateKey) => {
-          dispatch(closeDay())
-          dispatch(openEditor({ presetDate: dateKey }))
-        }}
+        onAddPost={
+          canCreatePost
+            ? (dateKey) => {
+                dispatch(closeDay())
+                dispatch(openEditor({ presetDate: dateKey }))
+              }
+            : undefined
+        }
       />
 
       <PostDetailsDrawer

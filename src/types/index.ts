@@ -96,13 +96,27 @@ export interface ShareLink {
   createdAt: string
 }
 
+export const TEAM_ROLES = [
+  'Super Admin',
+  'Founder',
+  'Social Media Manager',
+  'Art Director',
+  'Graphic Designer',
+  'Instructional Designer',
+  'Archive Master',
+  'Accountant',
+] as const
+export type TeamRole = (typeof TEAM_ROLES)[number]
+
 export interface TeamMember {
   id: string
   workspace: WorkspaceId
   name: string
   role: string
   email: string
+  avatarUrl?: string
   focus?: SocialPlatform[]
+  lastActive?: string
 }
 
 export type TeamMemberInput = Omit<TeamMember, 'id'>
@@ -136,3 +150,83 @@ export interface DriveFile {
 }
 
 export type FileRecordInput = Omit<DriveFile, 'id' | 'createdAt' | 'updatedAt'>
+
+// ---------------------------------------------------------------------------
+// Time Tracker
+//
+// companies → projects → work_items → time_entries. A Work Item is the unit of
+// work; company and project only provide context. Two work items in the same
+// project are entirely independent, so nothing here is ever keyed by
+// company+project.
+// ---------------------------------------------------------------------------
+
+export const WORK_ITEM_STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'completed'] as const
+export type WorkItemStatus = (typeof WORK_ITEM_STATUSES)[number]
+
+/** `running` and `completed` are set by the timer; `manual` marks an entry
+ *  typed in by hand, `edited` one that was changed after the fact. */
+export const TIME_ENTRY_STATUSES = ['running', 'completed', 'manual', 'edited'] as const
+export type TimeEntryStatus = (typeof TIME_ENTRY_STATUSES)[number]
+
+export interface Company {
+  id: string
+  name: string
+  /** Chosen hex colour, or null to keep the one derived from the name. */
+  color: string | null
+  createdBy: string
+  createdAt: string
+}
+
+export type CompanyInput = Omit<Company, 'id' | 'createdAt'>
+
+export interface Project {
+  id: string
+  companyId: string
+  name: string
+  /** Chosen hex colour, or null to keep the one derived from the name. */
+  color: string | null
+  createdBy: string
+  createdAt: string
+}
+
+export type ProjectInput = Omit<Project, 'id' | 'createdAt'>
+
+export interface WorkItem {
+  id: string
+  /** Immutable human-facing handle, e.g. "WI-000182". Assigned by Postgres at
+   *  insert and never regenerated — renaming or re-parenting keeps it. */
+  code: string
+  projectId: string
+  name: string
+  description: string
+  status: WorkItemStatus
+  /** Optional link to a file in the Files module — work often exists before
+   *  any file does. */
+  fileId: string | null
+  postId: string | null
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type WorkItemInput = Omit<WorkItem, 'id' | 'code' | 'createdAt' | 'updatedAt'>
+
+export interface TimeEntry {
+  id: string
+  /** Display name of whoever tracked the time — same attribution-by-name
+   *  convention posts use for `assignee`/`createdBy`. */
+  userName: string
+  workItemId: string
+  description: string
+  startTime: string
+  endTime: string | null
+  /** Seconds. 0 while running; the live figure is derived from `startTime`. */
+  duration: number
+  /** yyyy-MM-dd of the local day the entry belongs to. */
+  date: string
+  status: TimeEntryStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export type TimeEntryInput = Omit<TimeEntry, 'id' | 'createdAt' | 'updatedAt'>

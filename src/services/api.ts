@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient'
 import type {
+  Company,
+  CompanyInput,
   DriveFile,
   DriveFolder,
   DriveStage,
@@ -8,9 +10,15 @@ import type {
   FolderInput,
   Post,
   PostInput,
+  Project,
+  ProjectInput,
   ShareLink,
   TeamMember,
   TeamMemberInput,
+  TimeEntry,
+  TimeEntryInput,
+  WorkItem,
+  WorkItemInput,
   WorkspaceId,
 } from '@/types'
 
@@ -94,8 +102,6 @@ export const api = {
       feedback: _feedback,
       createdAt: _createdAt,
       updatedAt: _updatedAt,
-      // A copy is a fresh design: it re-enters review, and it must not claim
-      // the original's Drive file or inherit its completion record.
       driveFileId: _driveFileId,
       driveStage: _driveStage,
       reviewedBy: _reviewedBy,
@@ -112,9 +118,6 @@ export const api = {
     return sortFeedback(data)
   },
 
-  /** `driveStage` rides along because the client reviewing a share link is
-   *  anonymous: `add_feedback` is the only write it's allowed, so recording
-   *  that the image reached Done has to happen inside the same call. */
   addFeedback: async (id: string, input: FeedbackInput, driveStage?: DriveStage) => {
     await unwrap(
       supabase.rpc('add_feedback', {
@@ -160,18 +163,16 @@ export const api = {
     return { id }
   },
 
-  /** Posts carry `assignee` as a plain name, not a team_members id, so renaming
-   *  someone has to follow through here or their existing assignments quietly
-   *  stop matching the roster (and the editor's assignee select drops them). */
   renameAssignee: async (from: string, to: string) => {
     const { error } = await supabase.from('posts').update({ assignee: to }).eq('assignee', from)
     if (error) throw new Error(error.message)
   },
 
-  listFolders: (workspace: WorkspaceId) =>
-    unwrap<DriveFolder[]>(
-      supabase.from('folders').select().eq('workspace', workspace).order('name'),
-    ),
+  listFolders: (workspace?: WorkspaceId) => {
+    let query = supabase.from('folders').select().order('name')
+    if (workspace) query = query.eq('workspace', workspace)
+    return unwrap<DriveFolder[]>(query)
+  },
 
   createFolder: (input: FolderInput) =>
     unwrap<DriveFolder>(supabase.from('folders').insert(input).select().single()),
@@ -185,12 +186,13 @@ export const api = {
     return { id }
   },
 
-  listFiles: (workspace: WorkspaceId) =>
-    unwrap<DriveFile[]>(
-      supabase.from('files').select().eq('workspace', workspace).order('createdAt', {
-        ascending: false,
-      }),
-    ),
+  listFiles: (workspace?: WorkspaceId) => {
+    let query = supabase.from('files').select().order('createdAt', {
+      ascending: false,
+    })
+    if (workspace) query = query.eq('workspace', workspace)
+    return unwrap<DriveFile[]>(query)
+  },
 
   createFile: (input: FileRecordInput) =>
     unwrap<DriveFile>(supabase.from('files').insert(input).select().single()),
@@ -207,6 +209,86 @@ export const api = {
 
   deleteFile: async (id: string) => {
     const { error } = await supabase.from('files').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+    return { id }
+  },
+
+  // --- Time Tracker ---------------------------------------------------------
+  // Companies, projects and work items are small reference tables, so they're
+  // fetched whole and joined client-side rather than through nested PostgREST
+  // selects. That keeps one copy of the hierarchy in memory that the work-item
+  // search, the pickers and every report all read from.
+
+  listCompanies: () => unwrap<Company[]>(supabase.from('companies').select().order('name')),
+
+  createCompany: (input: CompanyInput) =>
+    unwrap<Company>(supabase.from('companies').insert(input).select().single()),
+
+  updateCompany: (id: string, patch: Partial<CompanyInput>) =>
+    unwrap<Company>(supabase.from('companies').update(patch).eq('id', id).select().single()),
+
+  deleteCompany: async (id: string) => {
+    const { error } = await supabase.from('companies').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+    return { id }
+  },
+
+  listProjects: () => unwrap<Project[]>(supabase.from('projects').select().order('name')),
+
+  createProject: (input: ProjectInput) =>
+    unwrap<Project>(supabase.from('projects').insert(input).select().single()),
+
+  updateProject: (id: string, patch: Partial<ProjectInput>) =>
+    unwrap<Project>(supabase.from('projects').update(patch).eq('id', id).select().single()),
+
+  deleteProject: async (id: string) => {
+    const { error } = await supabase.from('projects').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+    return { id }
+  },
+
+  listWorkItems: () => unwrap<WorkItem[]>(supabase.from('work_items').select().order('name')),
+
+  // `code` is omitted on purpose — Postgres assigns it from a sequence.
+  createWorkItem: (input: WorkItemInput) =>
+    unwrap<WorkItem>(supabase.from('work_items').insert(input).select().single()),
+
+  updateWorkItem: (id: string, patch: Partial<WorkItemInput>) =>
+    unwrap<WorkItem>(
+      supabase
+        .from('work_items')
+        .update({ ...patch, updatedAt: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single(),
+    ),
+
+  deleteWorkItem: async (id: string) => {
+    const { error } = await supabase.from('work_items').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+    return { id }
+  },
+
+  listTimeEntries: () =>
+    unwrap<TimeEntry[]>(
+      supabase.from('time_entries').select().order('startTime', { ascending: false }),
+    ),
+
+  createTimeEntry: (input: TimeEntryInput) =>
+    unwrap<TimeEntry>(supabase.from('time_entries').insert(input).select().single()),
+
+  updateTimeEntry: (id: string, patch: Partial<TimeEntryInput>) =>
+    unwrap<TimeEntry>(
+      supabase
+        .from('time_entries')
+        .update({ ...patch, updatedAt: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single(),
+    ),
+
+  deleteTimeEntry: async (id: string) => {
+    const { error } = await supabase.from('time_entries').delete().eq('id', id)
     if (error) throw new Error(error.message)
     return { id }
   },

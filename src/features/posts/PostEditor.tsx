@@ -3,7 +3,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { ExternalLink, FileText, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -22,14 +22,16 @@ import {
 } from '@/components/ui/select'
 import { FormRow } from '@/components/shared/FormRow'
 import { Textarea } from '@/components/ui/textarea'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useCreatePost, useUpdatePost } from '@/hooks/usePosts'
 import { useSession } from '@/hooks/useSession'
-import { useTeamMembers } from '@/hooks/useTeamMembers'
 import { CONTENT_TYPE_META, WORKSPACE_META } from '@/lib/constants'
+import { buildPostFileName } from '@/lib/media'
 import { useAppSelector } from '@/store/hooks'
 import { CONTENT_TYPES, type Post, type SocialPlatform } from '@/types'
 import { PlatformSelector } from './PlatformSelector'
 import { postSchema, type PostFormValues } from './postSchema'
+import { ProjectFolderPicker } from './ProjectFolderPicker'
 import { UploadField } from './UploadField'
 
 interface PostEditorProps {
@@ -53,8 +55,6 @@ const emptyValues = (
   time,
   platforms: defaultPlatforms,
   contentType: 'image',
-  // Not a form field: the workflow decides status, and a new post is always
-  // waiting for review.
   status: 'review',
   assignee: '',
   contentUrl: '',
@@ -65,12 +65,12 @@ const emptyValues = (
 
 export function PostEditor({ open, post, presetDate, presetTime, onClose }: PostEditorProps) {
   const { t } = useTranslation()
+  const { canUploadMedia } = usePermissions()
   const create = useCreatePost()
   const update = useUpdatePost()
   const isEdit = Boolean(post)
   const activeWorkspace = useAppSelector((s) => s.settings.activeWorkspace)
   const defaultPlatforms = WORKSPACE_META[activeWorkspace].defaultPlatforms
-  const { data: team = [] } = useTeamMembers()
   const { displayName } = useSession()
 
   const {
@@ -79,11 +79,18 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
     control,
     reset,
     setValue,
+    getValues,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
     defaultValues: emptyValues(presetDate ?? '', presetTime ?? '10:00', defaultPlatforms),
   })
+
+  const watchedContentFileName = watch('contentFileName')
+  const watchedContentUrl = watch('contentUrl')
+  const watchedTopic = watch('topic')
+  const watchedPlatforms = watch('platforms') || []
 
   // Repopulate whenever the target post (or preset day) changes.
   useEffect(() => {
@@ -119,12 +126,21 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
 
   const onSubmit = handleSubmit(async (raw) => {
     const values = postSchema.parse(raw)
+    const formattedFileName = values.contentUrl
+      ? buildPostFileName(
+          values.title,
+          values.contentFileName,
+          values.contentUrl,
+          values.contentType,
+        )
+      : values.contentFileName || undefined
+
     const payload = {
       ...values,
       workspace: activeWorkspace,
       assignee: values.assignee || undefined,
       contentUrl: values.contentUrl || undefined,
-      contentFileName: values.contentFileName || undefined,
+      contentFileName: formattedFileName,
       mediaPreview: values.mediaPreview || undefined,
       driveFileId: values.driveFileId || undefined,
     }
@@ -150,8 +166,8 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden p-0">
-        <DialogHeader className="border-b p-5 pe-14">
+      <DialogContent className="flex max-h-[92vh] w-[95vw] max-w-5xl xl:max-w-6xl flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="border-b px-6 py-3.5 pe-14">
           <DialogTitle>{isEdit ? t('editor.editTitle') : t('editor.createTitle')}</DialogTitle>
           <DialogDescription className="text-xs">
             {isEdit ? post?.title : t('calendar.subtitle', { month: '' }).trim()}
@@ -159,172 +175,179 @@ export function PostEditor({ open, post, presetDate, presetTime, onClose }: Post
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="flex min-h-0 flex-col">
-          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
-            <FormRow label={t('editor.titleLabel')} error={err('title')} htmlFor="post-title">
-              <Input
-                id="post-title"
-                {...register('title')}
-                placeholder={t('editor.titlePlaceholder')}
-                aria-invalid={Boolean(errors.title)}
-              />
-            </FormRow>
-
-            <FormRow label={t('editor.captionLabel')} htmlFor="post-caption">
-              <Textarea
-                id="post-caption"
-                {...register('caption')}
-                placeholder={t('editor.captionPlaceholder')}
-                rows={4}
-              />
-            </FormRow>
-
-            <FormRow label={t('editor.descriptionLabel')} htmlFor="post-description">
-              <Textarea
-                id="post-description"
-                {...register('description')}
-                placeholder={t('editor.descriptionPlaceholder')}
-                rows={3}
-              />
-            </FormRow>
-
-            <FormRow label={t('editor.platformsLabel')} error={err('platforms')}>
-              <Controller
-                control={control}
-                name="platforms"
-                render={({ field }) => (
-                  <PlatformSelector
-                    value={field.value}
-                    onChange={field.onChange}
-                    allowedPlatforms={activeWorkspace === 'dr_wael' ? ['linkedin'] : undefined}
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Left Column: Content & Media */}
+              <div className="space-y-3.5">
+                <FormRow label={t('editor.titleLabel')} error={err('title')} htmlFor="post-title">
+                  <Input
+                    id="post-title"
+                    {...register('title')}
+                    placeholder={t('editor.titlePlaceholder')}
+                    aria-invalid={Boolean(errors.title)}
                   />
-                )}
-              />
-            </FormRow>
+                </FormRow>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormRow label={t('editor.dateLabel')} error={err('date')} htmlFor="post-date">
-                <Input id="post-date" type="date" {...register('date')} />
-              </FormRow>
-              <FormRow label={t('editor.timeLabel')} error={err('time')} htmlFor="post-time">
-                <Input id="post-time" type="time" {...register('time')} />
-              </FormRow>
-            </div>
+                <FormRow label={t('editor.captionLabel')} htmlFor="post-caption">
+                  <Textarea
+                    id="post-caption"
+                    {...register('caption')}
+                    placeholder={t('editor.captionPlaceholder')}
+                    rows={4}
+                  />
+                </FormRow>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <FormRow label={t('editor.contentTypeLabel')}>
-                <Controller
-                  control={control}
-                  name="contentType"
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CONTENT_TYPES.map((type) => {
-                          const Icon = CONTENT_TYPE_META[type].icon
-                          return (
-                            <SelectItem key={type} value={type}>
-                              <span className="flex items-center gap-2">
-                                <Icon className="size-3.5 text-muted-foreground" />
-                                {t(CONTENT_TYPE_META[type].labelKey)}
-                              </span>
-                            </SelectItem>
-                          )
-                        })}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </FormRow>
+                <FormRow label={t('editor.descriptionLabel')} htmlFor="post-description">
+                  <Textarea
+                    id="post-description"
+                    {...register('description')}
+                    placeholder={t('editor.descriptionPlaceholder')}
+                    rows={3}
+                  />
+                </FormRow>
 
-              <FormRow label={t('editor.topicLabel')} htmlFor="post-topic">
-                <Input
-                  id="post-topic"
-                  {...register('topic')}
-                  placeholder={t('editor.topicPlaceholder')}
-                />
-              </FormRow>
+                <FormRow label={t('editor.projectFolder')} htmlFor="post-topic">
+                  <Controller
+                    control={control}
+                    name="topic"
+                    render={({ field }) => (
+                      <ProjectFolderPicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        workspace={activeWorkspace}
+                        disabled={isSubmitting}
+                      />
+                    )}
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {t('editor.folderLocationHint', {
+                      category: WORKSPACE_META[activeWorkspace]?.driveCategory || 'Social Media',
+                    })}
+                  </p>
+                </FormRow>
 
-              <FormRow label={t('editor.assigneeLabel')}>
-                <Controller
-                  control={control}
-                  name="assignee"
-                  render={({ field }) => (
-                    <Select
-                      value={field.value || 'none'}
-                      onValueChange={(v) => field.onChange(v === 'none' ? '' : v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('editor.assigneePlaceholder')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">—</SelectItem>
-                        {team.map((member) => (
-                          <SelectItem key={member.id} value={member.name}>
-                            {member.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </FormRow>
-            </div>
+                <FormRow label={t('editor.uploadFiles')} error={err('contentUrl')}>
+                  <div className="space-y-2">
+                    <UploadField
+                      disabled={isSubmitting || !canUploadMedia}
+                      folderName={watchedTopic?.trim() || undefined}
+                      category={WORKSPACE_META[activeWorkspace].driveCategory}
+                      onUploaded={({ contentUrl, contentFileName, driveFileId }) => {
+                        const titleVal = getValues('title')
+                        const formatted = titleVal
+                          ? buildPostFileName(
+                              titleVal,
+                              contentFileName,
+                              contentUrl,
+                              getValues('contentType'),
+                            )
+                          : contentFileName
+                        setValue('contentUrl', contentUrl, { shouldValidate: true })
+                        setValue('contentFileName', formatted)
+                        setValue('driveFileId', driveFileId ?? '')
+                        setValue('driveStage', 'review')
+                      }}
+                    />
+                    {(watchedContentFileName || watchedContentUrl) && (
+                      <div className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] p-2.5 text-xs">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <FileText className="size-4 shrink-0 text-primary" />
+                          <span className="truncate font-medium text-white">
+                            {watchedContentFileName || watchedContentUrl}
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          {watchedContentUrl && (
+                            <a
+                              href={watchedContentUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex size-7 items-center justify-center rounded-lg text-neutral-400 hover:bg-white/[0.08] hover:text-white"
+                              title="Open link"
+                            >
+                              <ExternalLink className="size-3.5" />
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setValue('contentUrl', '')
+                              setValue('contentFileName', '')
+                              setValue('driveFileId', '')
+                              setValue('mediaPreview', '')
+                            }}
+                            className="flex size-7 items-center justify-center rounded-lg text-neutral-400 hover:bg-red-500/10 hover:text-red-400"
+                            title="Remove file"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </FormRow>
+              </div>
 
-            <FormRow
-              label={t('editor.contentUrlLabel')}
-              error={err('contentUrl')}
-              hint={t('editor.contentUrlHint')}
-              htmlFor="post-url"
-            >
-              <Input
-                id="post-url"
-                {...register('contentUrl')}
-                placeholder={t('editor.contentUrlPlaceholder')}
-                inputMode="url"
-              />
-              <UploadField
-                disabled={isSubmitting}
-                onUploaded={({ contentUrl, contentFileName, driveFileId }) => {
-                  setValue('contentUrl', contentUrl, { shouldValidate: true })
-                  setValue('contentFileName', contentFileName)
-                  // A freshly uploaded image sits in Review, even if this post
-                  // had already been completed once.
-                  setValue('driveFileId', driveFileId ?? '')
-                  setValue('driveStage', 'review')
-                }}
-              />
-            </FormRow>
+              {/* Right Column: Logistics, Schedule & Details */}
+              <div className="space-y-3.5">
+                <FormRow label={t('editor.platformsLabel')} error={err('platforms')}>
+                  <Controller
+                    control={control}
+                    name="platforms"
+                    render={({ field }) => (
+                      <PlatformSelector
+                        value={field.value}
+                        onChange={field.onChange}
+                        allowedPlatforms={activeWorkspace === 'dr_wael' ? ['linkedin'] : undefined}
+                      />
+                    )}
+                  />
+                </FormRow>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormRow label={t('editor.fileNameLabel')} htmlFor="post-filename">
-                <Input
-                  id="post-filename"
-                  {...register('contentFileName')}
-                  placeholder={t('editor.fileNamePlaceholder')}
-                />
-              </FormRow>
-              <FormRow
-                label={t('editor.mediaPreviewLabel')}
-                error={err('mediaPreview')}
-                htmlFor="post-thumb"
-              >
-                <Input
-                  id="post-thumb"
-                  {...register('mediaPreview')}
-                  placeholder={t('editor.mediaPreviewPlaceholder')}
-                  inputMode="url"
-                />
-              </FormRow>
+                <div className="grid gap-3.5 sm:grid-cols-2">
+                  <FormRow label={t('editor.dateLabel')} error={err('date')} htmlFor="post-date">
+                    <Input id="post-date" type="date" {...register('date')} />
+                  </FormRow>
+                  <FormRow label={t('editor.timeLabel')} error={err('time')} htmlFor="post-time">
+                    <Input id="post-time" type="time" {...register('time')} />
+                  </FormRow>
+                </div>
+
+                <FormRow label={t('editor.contentTypeLabel')}>
+                  <Controller
+                    control={control}
+                    name="contentType"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CONTENT_TYPES.map((type) => {
+                            const Icon = CONTENT_TYPE_META[type].icon
+                            return (
+                              <SelectItem key={type} value={type}>
+                                <span className="flex items-center gap-2">
+                                  <Icon className="size-3.5 text-muted-foreground" />
+                                  {t(CONTENT_TYPE_META[type].labelKey)}
+                                </span>
+                              </SelectItem>
+                            )
+                          })}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </FormRow>
+              </div>
             </div>
           </div>
 
-          <div className="flex shrink-0 justify-end gap-2 border-t p-4">
+          <div className="flex shrink-0 justify-end gap-2 border-t px-6 py-3">
             <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
               {t('editor.cancel')}
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || watchedPlatforms.length === 0}>
               {isSubmitting && <Loader2 className="animate-spin" />}
               {isEdit ? t('editor.save') : t('editor.create')}
             </Button>

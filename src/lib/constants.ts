@@ -112,10 +112,14 @@ export const GOOGLE_FILE_META: Record<
 
 export const WORKSPACE_META: Record<
   WorkspaceId,
-  { label: string; defaultPlatforms: SocialPlatform[] }
+  { label: string; defaultPlatforms: SocialPlatform[]; driveCategory: string }
 > = {
-  wonderlearn: { label: 'Wonderlearn', defaultPlatforms: [] },
-  dr_wael: { label: 'Dr. Wael', defaultPlatforms: ['linkedin'] },
+  wonderlearn: { label: 'Wonderlearn', defaultPlatforms: [], driveCategory: 'Social Media' },
+  dr_wael: {
+    label: 'Dr. Wael',
+    defaultPlatforms: ['linkedin'],
+    driveCategory: 'Dr. Wael Social Media',
+  },
 }
 
 // Two fixed Supabase Auth accounts back the manager login — never shown in
